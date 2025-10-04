@@ -8,7 +8,6 @@ import (
 	"gitlab.com/gomidi/rtmididrv"
 	"log"
 	"math"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -17,10 +16,18 @@ const sampleRate = 44100
 const amplitude = 0.5
 const noteOff = 0
 
+const midiNoteOn byte = 0x90
+const midiNoteOff byte = 0x80
+
+type NotesPlayed struct {
+	notes []uint8
+}
+
 var (
-	notesMu        sync.Mutex
-	lastPlayedNote atomic.Uint32
-	noteToFreq     = make(map[uint32]float64)
+	lastPlayedNote    atomic.Uint32
+	atomicPlayedNotes atomic.Value
+	playedNotes       []uint8
+	noteToFreq        = make(map[uint32]float64)
 )
 
 func midiNoteToFreq(note uint8) float64 {
@@ -30,6 +37,52 @@ func midiNoteToFreq(note uint8) float64 {
 func main() {
 	must(portaudio.Initialize())
 	defer portaudio.Terminate()
+
+	atomicPlayedNotes.Store(NotesPlayed{notes: make([]uint8, 0, 10)})
+
+	// Initialiser les fréquences des notes MIDI
+	for i := 0; i <= 127; i++ {
+		noteToFreq[uint32(i)] = midiNoteToFreq(uint8(i))
+	}
+	noteToFreq[noteOff] = 0.0 // Fréquence 0 pour la note "off"
+
+	phase := 0.0
+	updateDatedPhase := 0.0 // pour debug
+	phaseStep := 1.0 / sampleRate
+	var fadeInSample uint16 = 441 // 10ms de fade-in
+	var fadeInCount uint16 = 0
+	amp := amplitude
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, 256, func(out []float32) {
+		notesPlayed := atomicPlayedNotes.Load().(NotesPlayed)
+		for i := range out {
+			if fadeInCount < fadeInSample {
+				amp = amplitude * float64(fadeInCount) / float64(fadeInSample)
+				fadeInCount++
+			}
+
+			o := float32(0.0)
+			for i1 := range notesPlayed.notes {
+				o += float32(amp * math.Sin(2*math.Pi*noteToFreq[uint32(notesPlayed.notes[i1])]*phase))
+			}
+
+			out[i] = o
+
+			_, updateDatedPhase = math.Modf(phase + phaseStep)
+
+			if math.Abs(updateDatedPhase-phase) > 0.1 {
+				phaseStep = -1 * phaseStep // Inversion du sens de la phase pour atténuer le clic
+				_, updateDatedPhase = math.Modf(phase + phaseStep)
+			}
+
+			phase = updateDatedPhase
+
+			//fmt.Println(phase)
+		}
+	})
+	must(err)
+	defer stream.Close()
+	must(stream.Start())
+	defer stream.Stop()
 
 	drv, err := rtmididrv.New()
 	if err != nil {
@@ -53,51 +106,6 @@ func main() {
 		must(in.Close())
 	}(in)
 
-	// Initialiser les fréquences des notes MIDI
-	for i := 0; i <= 127; i++ {
-		noteToFreq[uint32(i)] = midiNoteToFreq(uint8(i))
-	}
-	noteToFreq[noteOff] = 0.0 // Fréquence 0 pour la note "off"
-
-	phase := 0.0
-	phaseStep := 1.0 / sampleRate
-	var lastNote uint32
-	var fadeInSample uint16 = 441 // 10ms de fade-in
-	var fadeInCount uint16 = 0
-	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, 256, func(out []float32) {
-		note := lastPlayedNote.Load()
-		if note != lastNote {
-			lastNote = note
-			fadeInCount = 0
-		}
-		freq := noteToFreq[note]
-		amp := amplitude
-		for i := range out {
-			if fadeInCount < fadeInSample {
-				amp = amplitude * float64(fadeInCount) / float64(fadeInSample)
-				fadeInCount++
-			}
-			out[i] = float32(amp * math.Sin(2*math.Pi*freq*phase))
-
-			phase = phase + phaseStep
-
-			if phase >= 1.0 {
-				phaseStep = -1 * phaseStep
-				phase = phase + phaseStep
-			} else if phase <= 0.0 {
-				phaseStep = -1 * phaseStep
-				phase = phase + phaseStep
-			}
-
-			//_, phase = math.Modf(phase + freq/sampleRate) // fréquence par défaut 440 Hz
-
-		}
-	})
-	must(err)
-	defer stream.Close()
-	must(stream.Start())
-	defer stream.Stop()
-
 	rd := reader.New(
 		reader.NoLogger(),
 		reader.Each(func(pos *reader.Position, msg midi.Message) {
@@ -108,12 +116,22 @@ func main() {
 			canal := midiBytes[0] & 0xF0
 			note := midiBytes[1]
 			velocity := midiBytes[2]
-			if canal == 0x90 && velocity > 0 { // Note ON
-				lastPlayedNote.Store(uint32(note))
-			} else if (canal == 0x80) || (canal == 0x90 && velocity == 0) { // Note OFF
-				if lastPlayedNote.Load() == uint32(note) {
-					lastPlayedNote.Store(noteOff)
+			fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
+
+			if canal == midiNoteOn && velocity > 0 { // Note ON
+				playedNotes = append(playedNotes, note)
+				n := NotesPlayed{notes: playedNotes}
+				atomicPlayedNotes.Store(n)
+			} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) { // Note OFF
+				for i, n := range playedNotes {
+					if n == note {
+						playedNotes = append(playedNotes[:i], playedNotes[i+1:]...)
+						break
+					}
 				}
+				n := NotesPlayed{notes: playedNotes}
+				atomicPlayedNotes.Store(n)
+
 			}
 		}),
 	)
