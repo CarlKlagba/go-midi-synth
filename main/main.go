@@ -70,14 +70,13 @@ func main() {
 
 			_, updateDatedPhase = math.Modf(phase + phaseStep)
 
-			if math.Abs(updateDatedPhase-phase) > 0.1 {
-				phaseStep = -1 * phaseStep // Inversion du sens de la phase pour atténuer le clic
+			if math.Abs(updateDatedPhase-phase) > 0.1 { //TODO à revoir, j'ai toujours un clique
+				phaseStep = -1 * phaseStep
 				_, updateDatedPhase = math.Modf(phase + phaseStep)
 			}
 
 			phase = updateDatedPhase
 
-			//fmt.Println(phase)
 		}
 	})
 	must(err)
