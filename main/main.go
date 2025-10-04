@@ -44,7 +44,7 @@ func main() {
 	for i := 0; i <= 127; i++ {
 		noteToFreq[uint32(i)] = midiNoteToFreq(uint8(i))
 	}
-	noteToFreq[noteOff] = 0.0 // Fréquence 0 pour la note "off"
+	noteToFreq[noteOff] = 0.0
 
 	phase := 0.0
 	updateDatedPhase := 0.0 // pour debug
@@ -54,6 +54,7 @@ func main() {
 	amp := amplitude
 	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, 256, func(out []float32) {
 		notesPlayed := atomicPlayedNotes.Load().(NotesPlayed)
+
 		for i := range out {
 			if fadeInCount < fadeInSample {
 				amp = amplitude * float64(fadeInCount) / float64(fadeInSample)
@@ -61,8 +62,8 @@ func main() {
 			}
 
 			o := float32(0.0)
-			for i1 := range notesPlayed.notes {
-				o += float32(amp * math.Sin(2*math.Pi*noteToFreq[uint32(notesPlayed.notes[i1])]*phase))
+			for _, v := range notesPlayed.notes {
+				o += float32(amp * math.Sin(2*math.Pi*noteToFreq[uint32(v)]*phase))
 			}
 
 			out[i] = o
