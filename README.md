@@ -23,3 +23,6 @@ This a live midi synthesizer in go.
   - [ ] Decay
   - [ ] Sustain
   - [ ] Release
+- [ ] Stereo output
+- [ ] GUI: ....
+
