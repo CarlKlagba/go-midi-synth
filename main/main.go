@@ -27,11 +27,8 @@ var (
 	atomicPlayedNotes atomic.Value
 	playedNotes       []uint8
 	noteToFreq        = make(map[uint32]float64)
+	noteToPhase       = make(map[uint32]float64)
 )
-
-func midiNoteToFreq(note uint8) float64 {
-	return 440.0 * math.Pow(2, (float64(note)-69)/12)
-}
 
 func main() {
 	must(portaudio.Initialize())
@@ -45,7 +42,11 @@ func main() {
 	}
 	noteToFreq[noteOff] = 0.0
 
-	phase := 0.0
+	// Initialiser les phases des notes MIDI
+	for i := 0; i <= 127; i++ {
+		noteToPhase[uint32(i)] = 0.0
+	}
+
 	var fadeInSample uint16 = 441 // 10ms de fade-in
 	var fadeInCount uint16 = 0
 	amp := amplitude
@@ -60,13 +61,12 @@ func main() {
 			o := float32(0.0)
 			for _, v := range notesPlayed.notes {
 				freq := noteToFreq[uint32(v)]
+				phase := noteToPhase[uint32(v)]
 				step := freq / sampleRate
 				o += float32(amp * math.Sin(2*math.Pi*phase))
-				_, phase = math.Modf(phase + step)
+				_, noteToPhase[uint32(v)] = math.Modf(phase + step)
 			}
-
 			out[i] = o
-
 		}
 	})
 	must(err)
@@ -132,6 +132,10 @@ func main() {
 
 	time.Sleep(1000 * time.Second)
 
+}
+
+func midiNoteToFreq(note uint8) float64 {
+	return 440.0 * math.Pow(2, (float64(note)-69)/12)
 }
 
 /*
