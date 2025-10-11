@@ -28,6 +28,7 @@ var (
 	playedNotes       []uint8
 	noteToFreq        = make(map[uint32]float64)
 	noteToPhase       = make(map[uint32]float64)
+	noteToFadeIn      = make(map[uint32]uint16)
 )
 
 func main() {
@@ -47,6 +48,11 @@ func main() {
 		noteToPhase[uint32(i)] = 0.0
 	}
 
+	// Initialiser les fades-in des notes MIDI
+	for i := 0; i <= 127; i++ {
+		noteToFadeIn[uint32(i)] = 0
+	}
+
 	var fadeInSample uint16 = 441 // 10ms de fade-in
 	var fadeInCount uint16 = 0
 	amp := amplitude
@@ -63,9 +69,12 @@ func main() {
 				freq := noteToFreq[uint32(v)]
 				phase := noteToPhase[uint32(v)]
 				step := freq / sampleRate
+
 				o += float32(amp * math.Sin(2*math.Pi*phase))
+
 				_, noteToPhase[uint32(v)] = math.Modf(phase + step)
 			}
+
 			out[i] = o
 		}
 	})
@@ -121,7 +130,6 @@ func main() {
 				}
 				n := NotesPlayed{notes: playedNotes}
 				atomicPlayedNotes.Store(n)
-
 			}
 		}),
 	)
@@ -137,34 +145,6 @@ func main() {
 func midiNoteToFreq(note uint8) float64 {
 	return 440.0 * math.Pow(2, (float64(note)-69)/12)
 }
-
-/*
-func main() {
-	const sampleRate = 44100
-	const freq = 440.0
-	const amplitude = 0.3
-	const duration = 3 // secondes
-
-	portaudio.Initialize()
-	defer portaudio.Terminate()
-
-	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, 0, func(out []float32) {
-		for i := range out {
-			t := float64(i+sampleRate*int(time.Now().UnixNano()/1e9)) / sampleRate
-			out[i] = float32(amplitude * math.Sin(2*math.Pi*freq*t))
-		}
-	})
-	if err != nil {
-		panic(err)
-	}
-	defer stream.Close()
-
-	stream.Start()
-	time.Sleep(time.Second * duration)
-	stream.Stop()
-}
-
-*/
 
 func must(err error) {
 	if err != nil {
