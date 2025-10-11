@@ -25,5 +25,8 @@ This a live midi synthesizer in go.
   - [ ] Sustain
   - [ ] Release
 - [ ] Stereo output
-- [ ] GUI: ....
+- [ ] CLI GUI:
+  - [ ] Oscillator type selection
+  - [ ] Visualize the waveform
+  - [ ] Volume control
 

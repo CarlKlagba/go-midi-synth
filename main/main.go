@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/eiannone/keyboard"
 	"github.com/gordonklaus/portaudio"
 	"gitlab.com/gomidi/midi"
 	"gitlab.com/gomidi/midi/reader"
 	"gitlab.com/gomidi/rtmididrv"
 	"log"
 	"math"
+	"os"
 	"sync/atomic"
-	"time"
 )
 
 const sampleRate = 44100
@@ -75,9 +76,17 @@ func main() {
 	err1 := rd.ListenTo(in)
 	must(err1)
 
-	time.Sleep(1000 * time.Second)
-
+	controls(wp)
 }
+
+type Waveform int8
+
+const (
+	Sine Waveform = iota
+	Square
+	Sawtooth
+	Triangle
+)
 
 type WaveProcessor struct {
 	atomicPlayedNotes atomic.Value
@@ -87,6 +96,7 @@ type WaveProcessor struct {
 	fadeInCount       uint16
 	fadeInSample      uint16
 	amp               float64
+	waveform          Waveform
 }
 
 func newWaveProcessor() *WaveProcessor {
@@ -120,6 +130,7 @@ func newWaveProcessor() *WaveProcessor {
 		441, // 10ms de fade-in
 		0,
 		amplitude,
+		Sine,
 	}
 }
 func midiNoteToFreq(note uint8) float64 {
@@ -140,7 +151,14 @@ func (w *WaveProcessor) processAudio(out []float32) {
 			phase := w.noteToPhase[uint32(v)]
 			step := freq / sampleRate
 
-			o += float32(w.amp * sinWave(phase))
+			switch w.waveform {
+			case Sine:
+				o += float32(w.amp * sinWave(phase))
+			case Square:
+				o += float32(w.amp * sqrWave(phase))
+			default:
+				o += 0.
+			}
 
 			_, w.noteToPhase[uint32(v)] = math.Modf(phase + step)
 		}
@@ -183,6 +201,36 @@ func listenMidiMessage(atomicPlayedNotes atomic.Value) func(pos *reader.Position
 			atomicPlayedNotes.Store(n)
 		}
 	}
+}
+
+func controls(wp *WaveProcessor) {
+	go func() {
+		must(keyboard.Open())
+		defer must(keyboard.Close())
+
+		fmt.Println("Appuie sur 's' pour sinusoïdale, 'q' pour carrée, 'ESC' pour quitter")
+		for {
+			r, key, err := keyboard.GetKey()
+			if err != nil {
+				log.Fatal(err)
+			}
+			switch key {
+			case keyboard.KeyEsc:
+				fmt.Println("Arrêt du programme")
+				os.Exit(0)
+			default:
+				switch r {
+				case 's':
+					//wp.setWaveform("sine")
+					fmt.Println("Forme d'onde: sinusoïdale")
+				case 'q':
+					//wp.setWaveform("square")
+					fmt.Println("Forme d'onde: carrée")
+				}
+			}
+		}
+	}()
+
 }
 
 func must(err error) {
