@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"sync/atomic"
+	"time"
 )
 
 const sampleRate = 44100
@@ -26,9 +27,18 @@ type NotesPlayed struct {
 
 var (
 	playedNotes []uint8
+	noMidi      = false
 )
 
 func main() {
+
+	for _, arg := range os.Args[1:] {
+		if arg == "--no-midi" {
+			noMidi = true
+			break
+		}
+	}
+
 	must(portaudio.Initialize())
 	defer portaudio.Terminate()
 
@@ -44,6 +54,15 @@ func main() {
 	defer stream.Close()
 	must(stream.Start())
 	defer stream.Stop()
+
+	// Si l'option --no-midi est fournie, on n'utilise pas le MIDI
+	if noMidi {
+		notes := NotesPlayed{notes: []uint8{69}}
+		wp.atomicPlayedNotes.Store(notes)
+		controls(&wp.atomicWaveform)
+		time.Sleep(50 * time.Minute)
+		return
+	}
 
 	drv, err := rtmididrv.New()
 	if err != nil {
@@ -69,14 +88,16 @@ func main() {
 
 	rd := reader.New(
 		reader.NoLogger(),
-		reader.Each(listenMidiMessage(wp.atomicPlayedNotes)),
+		reader.Each(listenToMidiMessage(&wp.atomicPlayedNotes)),
 	)
 
 	fmt.Println("En attente de messages MIDI...")
 	err1 := rd.ListenTo(in)
 	must(err1)
 
-	controls(wp)
+	controls(&wp.atomicWaveform)
+
+	time.Sleep(50 * time.Minute)
 }
 
 type Waveform int8
@@ -90,13 +111,13 @@ const (
 
 type WaveProcessor struct {
 	atomicPlayedNotes atomic.Value
+	atomicWaveform    atomic.Value
 	noteToFreq        map[uint32]float64
 	noteToPhase       map[uint32]float64
 	noteToFadeIn      map[uint32]uint16
 	fadeInCount       uint16
 	fadeInSample      uint16
 	amp               float64
-	waveform          Waveform
 }
 
 func newWaveProcessor() *WaveProcessor {
@@ -106,6 +127,8 @@ func newWaveProcessor() *WaveProcessor {
 
 	var atomicPlayedNotes atomic.Value
 	atomicPlayedNotes.Store(NotesPlayed{notes: make([]uint8, 0, 10)})
+	var atomicWaveform atomic.Value
+	atomicWaveform.Store(Sine)
 
 	// Initialiser les fréquences des notes MIDI
 	for i := 0; i <= 127; i++ {
@@ -124,13 +147,13 @@ func newWaveProcessor() *WaveProcessor {
 	}
 	return &WaveProcessor{
 		atomicPlayedNotes,
+		atomicWaveform,
 		noteToFreq,
 		noteToPhase,
 		noteToFadeIn,
 		441, // 10ms de fade-in
 		0,
 		amplitude,
-		Sine,
 	}
 }
 func midiNoteToFreq(note uint8) float64 {
@@ -139,6 +162,7 @@ func midiNoteToFreq(note uint8) float64 {
 
 func (w *WaveProcessor) processAudio(out []float32) {
 	notesPlayed := w.atomicPlayedNotes.Load().(NotesPlayed)
+	waveform := w.atomicWaveform.Load().(Waveform)
 	for i := range out {
 		if w.fadeInCount < w.fadeInSample {
 			w.amp = amplitude * float64(w.fadeInCount) / float64(w.fadeInSample)
@@ -151,7 +175,7 @@ func (w *WaveProcessor) processAudio(out []float32) {
 			phase := w.noteToPhase[uint32(v)]
 			step := freq / sampleRate
 
-			switch w.waveform {
+			switch waveform {
 			case Sine:
 				o += float32(w.amp * sinWave(phase))
 			case Square:
@@ -175,7 +199,7 @@ func sqrWave(phase float64) float64 {
 	return math.Copysign(1, math.Sin(2*math.Pi*phase))
 }
 
-func listenMidiMessage(atomicPlayedNotes atomic.Value) func(pos *reader.Position, msg midi.Message) {
+func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
 	return func(pos *reader.Position, msg midi.Message) {
 		midiBytes := msg.Raw()
 		if len(midiBytes) < 3 {
@@ -203,11 +227,13 @@ func listenMidiMessage(atomicPlayedNotes atomic.Value) func(pos *reader.Position
 	}
 }
 
-func controls(wp *WaveProcessor) {
+func controls(atomicWaveform *atomic.Value) {
 	go func() {
-		must(keyboard.Open())
-		defer must(keyboard.Close())
-
+		err := keyboard.Open()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer keyboard.Close()
 		fmt.Println("Appuie sur 's' pour sinusoïdale, 'q' pour carrée, 'ESC' pour quitter")
 		for {
 			r, key, err := keyboard.GetKey()
@@ -218,19 +244,22 @@ func controls(wp *WaveProcessor) {
 			case keyboard.KeyEsc:
 				fmt.Println("Arrêt du programme")
 				os.Exit(0)
+			case keyboard.KeyCtrlC:
+				fmt.Println("Arrêt du programme")
+				os.Exit(0)
 			default:
 				switch r {
 				case 's':
-					//wp.setWaveform("sine")
 					fmt.Println("Forme d'onde: sinusoïdale")
+					atomicWaveform.Store(Sine)
+
 				case 'q':
-					//wp.setWaveform("square")
 					fmt.Println("Forme d'onde: carrée")
+					atomicWaveform.Store(Square)
 				}
 			}
 		}
 	}()
-
 }
 
 func must(err error) {
