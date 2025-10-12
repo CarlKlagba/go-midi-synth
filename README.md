@@ -14,7 +14,8 @@ This a live midi synthesizer in go.
 - [x] Polyphony
 - [x] Fix phase clicking noise
 - [ ] fix clicking when releasing note
-- [ ] Square wave oscillator
+- [ ] make a debug system with logging
+- [X] Square wave oscillator
 - [ ] Saw wave oscillator
 - [ ] Triangle wave oscillator
 - [ ] Use the midi velocity
