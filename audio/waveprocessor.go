@@ -93,6 +93,10 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 				o += float32(w.amp * sinWave(phase))
 			case Square:
 				o += float32(w.amp * sqrWave(phase))
+			case Triangle:
+				o += float32(w.amp * triWave(phase))
+			case Sawtooth:
+				o += float32(w.amp * sawWave(phase))
 			default:
 				o += 0.
 			}
@@ -110,4 +114,12 @@ func sinWave(phase float64) float64 {
 
 func sqrWave(phase float64) float64 {
 	return math.Copysign(1, math.Sin(2*math.Pi*phase))
+}
+
+func triWave(phase float64) float64 {
+	return math.Abs(phase-0.5) - 1
+}
+
+func sawWave(phase float64) float64 {
+	return phase - 0.5
 }

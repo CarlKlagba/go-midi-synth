@@ -34,10 +34,15 @@ func Controls(atomicWaveform *atomic.Value) {
 				case 's':
 					fmt.Println("Forme d'onde: sinusoïdale")
 					atomicWaveform.Store(audio.Sine)
-
 				case 'q':
 					fmt.Println("Forme d'onde: carrée")
 					atomicWaveform.Store(audio.Square)
+				case 't':
+					fmt.Println("Forme d'onde: Triangular")
+					atomicWaveform.Store(audio.Triangle)
+				case 'w':
+					fmt.Println("Forme d'onde: Sawtooth")
+					atomicWaveform.Store(audio.Sawtooth)
 				}
 			}
 		}
