@@ -117,7 +117,7 @@ func sqrWave(phase float64) float64 {
 }
 
 func triWave(phase float64) float64 {
-	return math.Abs(phase-0.5) - 1
+	return 4*math.Abs(phase-0.5) - 1
 }
 
 func sawWave(phase float64) float64 {
