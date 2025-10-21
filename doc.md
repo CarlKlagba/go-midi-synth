@@ -12,3 +12,4 @@
 - [Atomic Pointer in go](https://medium.com/better-programming/atomic-pointers-in-go-1-19-cad312f82d5b)
 - [Handling errors like a pro in go ](https://medium.com/@puneetpm/beyond-if-err-nil-how-senior-go-developers-handle-errors-like-pros-f7ebf958dbcb)
 - [Go-MeltySynth - an exmple of a synth in go](https://github.com/sinshu/go-meltysynth/tree/main)
+- [Hexa archi in go](https://techoguide.medium.com/why-senior-developers-are-choosing-this-architecture-for-go-projects-0f4fb29a249d)
