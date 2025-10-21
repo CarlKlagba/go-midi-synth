@@ -15,8 +15,8 @@ This a live midi synthesizer in go.
 - [x] Fix phase clicking noise
 - [ ] fix clicking when releasing note
 - [X] Square wave oscillator
-- [ ] Saw wave oscillator
-- [ ] Triangle wave oscillator
+- [X] Saw wave oscillator
+- [X] Triangle wave oscillator
 - [ ] Use the midi velocity
 - [ ] Reverb effect
 - [ ] ADSR envelope
