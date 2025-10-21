@@ -6,11 +6,11 @@ import (
 )
 
 const sampleRate = 44100
-const amplitude = 0.5
+const maxAmplitude = 0.8
 const noteOff = 0
 
 type NotesPlayed struct {
-	Notes []uint8
+	Notes []MidiNote
 }
 
 type Waveform int8
@@ -25,87 +25,92 @@ const (
 type WaveProcessor struct {
 	AtomicPlayedNotes atomic.Value
 	AtomicWaveform    atomic.Value
-	noteToFreq        map[uint32]float64
-	noteToPhase       map[uint32]float64
-	noteToFadeIn      map[uint32]uint16
+	noteToFreq        map[uint8]float64
+	noteToPhase       map[uint8]float64
+	velocityToAmp     map[uint8]float64
+	noteToFadeIn      map[uint8]uint16
 	fadeInCount       uint16
 	fadeInSample      uint16
 	amp               float64
 }
 
 func NewWaveProcessor() *WaveProcessor {
-	noteToFreq := make(map[uint32]float64)
-	noteToPhase := make(map[uint32]float64)
-	noteToFadeIn := make(map[uint32]uint16)
+	noteToFreq := make(map[uint8]float64, 128)
+	noteToPhase := make(map[uint8]float64, 128)
+	velocityToAmp := make(map[uint8]float64, 128)
+	noteToFadeIn := make(map[uint8]uint16, 128)
 
 	var atomicPlayedNotes atomic.Value
-	atomicPlayedNotes.Store(NotesPlayed{Notes: make([]uint8, 0, 10)})
+	atomicPlayedNotes.Store(NotesPlayed{Notes: make([]MidiNote, 0, 10)}) //careful we only allocate 10, so we might only be able to play 10notes at the time
 	var atomicWaveform atomic.Value
 	atomicWaveform.Store(Sine)
 
-	// Initialiser les fréquences des Notes MIDI
 	for i := 0; i <= 127; i++ {
-		noteToFreq[uint32(i)] = midiNoteToFreq(uint8(i))
+		noteToFreq[uint8(i)] = midiNoteToFreq(uint8(i))
 	}
 	noteToFreq[noteOff] = 0.0
 
-	// Initialiser les phases des Notes MIDI
 	for i := 0; i <= 127; i++ {
-		noteToPhase[uint32(i)] = 0.0
+		noteToPhase[uint8(i)] = 0.0
 	}
 
-	// Initialiser les fades-in des Notes MIDI
 	for i := 0; i <= 127; i++ {
-		noteToFadeIn[uint32(i)] = 0
+		velocityToAmp[uint8(i)] = midiVelocityToAmplitude(uint8(i))
+	}
+
+	for i := 0; i <= 127; i++ {
+		noteToFadeIn[uint8(i)] = 0
 	}
 	return &WaveProcessor{
 		atomicPlayedNotes,
 		atomicWaveform,
 		noteToFreq,
 		noteToPhase,
+		velocityToAmp,
 		noteToFadeIn,
 		441, // 10ms de fade-in
 		0,
-		amplitude,
+		maxAmplitude,
 	}
 }
-func midiNoteToFreq(note uint8) float64 {
-	return 440.0 * math.Pow(2, (float64(note)-69)/12)
-}
-
 func (w *WaveProcessor) ProcessAudio(out []float32) {
 	notesPlayed := w.AtomicPlayedNotes.Load().(NotesPlayed)
 	waveform := w.AtomicWaveform.Load().(Waveform)
 	for i := range out {
-		if w.fadeInCount < w.fadeInSample {
-			w.amp = amplitude * float64(w.fadeInCount) / float64(w.fadeInSample)
-			w.fadeInCount++
-		}
-
 		o := float32(0.0)
-		for _, v := range notesPlayed.Notes {
-			freq := w.noteToFreq[uint32(v)]
-			phase := w.noteToPhase[uint32(v)]
+		for _, midiNote := range notesPlayed.Notes {
+			freq := w.noteToFreq[midiNote.Note]
+			phase := w.noteToPhase[midiNote.Note]
+			amp := w.velocityToAmp[midiNote.Velocity]
+
 			step := freq / sampleRate
 
 			switch waveform {
 			case Sine:
-				o += float32(w.amp * sinWave(phase))
+				o += float32(amp * sinWave(phase))
 			case Square:
-				o += float32(w.amp * sqrWave(phase))
+				o += float32(amp * sqrWave(phase))
 			case Triangle:
-				o += float32(w.amp * triWave(phase))
+				o += float32(amp * triWave(phase))
 			case Sawtooth:
-				o += float32(w.amp * sawWave(phase))
+				o += float32(amp * sawWave(phase))
 			default:
 				o += 0.
 			}
 
-			_, w.noteToPhase[uint32(v)] = math.Modf(phase + step)
+			_, w.noteToPhase[uint8(midiNote.Note)] = math.Modf(phase + step)
 		}
 
 		out[i] = o
 	}
+}
+
+func midiVelocityToAmplitude(velocity uint8) float64 {
+	return (float64(velocity) / 127.0) * maxAmplitude
+}
+
+func midiNoteToFreq(note uint8) float64 {
+	return 440.0 * math.Pow(2, (float64(note)-69)/12)
 }
 
 func sinWave(phase float64) float64 {

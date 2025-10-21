@@ -17,7 +17,7 @@ This a live midi synthesizer in go.
 - [X] Square wave oscillator
 - [X] Saw wave oscillator
 - [X] Triangle wave oscillator
-- [ ] Use the midi velocity
+- [X] Use the midi velocity
 - [ ] Reverb effect
 - [ ] ADSR envelope
   - [ ] Attack

@@ -15,14 +15,12 @@ import (
 )
 
 const sampleRate = 44100
-const amplitude = 0.5
-const noteOff = 0
 
 const midiNoteOn byte = 0x90
 const midiNoteOff byte = 0x80
 
 var (
-	playedNotes []uint8
+	playedNotes []audio.MidiNote
 	noMidi      = false
 )
 
@@ -53,7 +51,8 @@ func main() {
 
 	// Si l'option --no-midi est fournie, on n'utilise pas le MIDI
 	if noMidi {
-		notes := audio.NotesPlayed{Notes: []uint8{69}}
+		note := audio.MidiNote{Note: 69, Velocity: 80}
+		notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
 		wp.AtomicPlayedNotes.Store(notes)
 		keyreader.Controls(&wp.AtomicWaveform)
 		time.Sleep(50 * time.Minute)
@@ -108,12 +107,12 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Posit
 		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
 
 		if canal == midiNoteOn && velocity > 0 { // Note ON
-			playedNotes = append(playedNotes, note)
+			playedNotes = append(playedNotes, audio.MidiNote{note, velocity})
 			n := audio.NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
 		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) { // Note OFF
 			for i, n := range playedNotes {
-				if n == note {
+				if n.Note == note {
 					playedNotes = append(playedNotes[:i], playedNotes[i+1:]...)
 					break
 				}
