@@ -29,9 +29,10 @@ type WaveProcessor struct {
 	noteToFreq        map[uint8]float64
 	noteToPhase       map[uint8]float64
 	velocityToAmp     map[uint8]float64
-	noteToFadeIn      map[uint8]uint16
-	fadeInCount       uint16
-	fadeInSample      uint16
+	noteToAttack      map[uint8]uint16
+	noteToRelease     map[uint8]uint16
+	attackCount       uint16
+	releaseCount      uint16
 	amp               float64
 }
 
@@ -39,7 +40,8 @@ func NewWaveProcessor() *WaveProcessor {
 	noteToFreq := make(map[uint8]float64, 128)
 	noteToPhase := make(map[uint8]float64, 128)
 	velocityToAmp := make(map[uint8]float64, 128)
-	noteToFadeIn := make(map[uint8]uint16, 128)
+	noteToAttack := make(map[uint8]uint16, 128)
+	noteToRelease := make(map[uint8]uint16, 128)
 
 	var atomicPlayedNotes atomic.Value
 	atomicPlayedNotes.Store(NotesPlayed{Notes: make([]MidiNote, 0, 10)}) //careful we only allocate 10, so we might only be able to play 10notes at the time
@@ -60,7 +62,12 @@ func NewWaveProcessor() *WaveProcessor {
 	}
 
 	for i := 0; i <= 127; i++ {
-		noteToFadeIn[uint8(i)] = 0
+		noteToAttack[uint8(i)] = 0
+	}
+
+	releaseCount := uint16(44100)
+	for i := 0; i <= 127; i++ {
+		noteToRelease[uint8(i)] = releaseCount
 	}
 
 	return &WaveProcessor{
@@ -69,9 +76,10 @@ func NewWaveProcessor() *WaveProcessor {
 		noteToFreq,
 		noteToPhase,
 		velocityToAmp,
-		noteToFadeIn,
+		noteToAttack,
+		noteToRelease,
 		4410, // 10ms de fade-in
-		0,
+		releaseCount,
 		maxAmplitude,
 	}
 }
@@ -81,18 +89,30 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 	for i := range out {
 		o := float32(0.0)
 		for _, midiNote := range notesPlayed.Notes {
-			if !midiNote.On {
-				w.noteToFadeIn[midiNote.Note] = 0
+			if !midiNote.On && w.noteToRelease[midiNote.Note] == 0 {
+				//TODO: remove note when note off after release completed
 				continue
+			}
+
+			if midiNote.On && w.noteToRelease[midiNote.Note] != w.releaseCount {
+				w.noteToRelease[midiNote.Note] = w.releaseCount
+			}
+			if !midiNote.On && w.noteToAttack[midiNote.Note] != 0 {
+				w.noteToAttack[midiNote.Note] = 0
 			}
 
 			freq := w.noteToFreq[midiNote.Note]
 			phase := w.noteToPhase[midiNote.Note]
 			amp := w.velocityToAmp[midiNote.Velocity]
 
-			if w.noteToFadeIn[midiNote.Note] < w.fadeInCount {
-				amp = amp * (float64(w.noteToFadeIn[midiNote.Note]) / float64(w.fadeInCount))
-				w.noteToFadeIn[midiNote.Note]++
+			if midiNote.On && w.noteToAttack[midiNote.Note] < w.attackCount {
+				amp = amp * (float64(w.noteToAttack[midiNote.Note]) / float64(w.attackCount))
+				w.noteToAttack[midiNote.Note]++
+			}
+
+			if !midiNote.On && w.noteToRelease[midiNote.Note] > 0 {
+				amp = amp * (float64(w.noteToRelease[midiNote.Note]) / float64(w.releaseCount))
+				w.noteToRelease[midiNote.Note]--
 			}
 
 			switch waveform {
