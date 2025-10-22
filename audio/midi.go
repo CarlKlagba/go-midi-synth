@@ -28,11 +28,11 @@ func ListenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Posit
 		velocity := midiBytes[2]
 		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
 
-		if canal == midiNoteOn && velocity > 0 { // Note ON
+		if canal == midiNoteOn && velocity > 0 {
 			playedNotes = append(playedNotes, MidiNote{note, velocity})
 			n := NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
-		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) { // Note OFF
+		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) {
 			playedNotes = deleteNote(note, playedNotes)
 			n := NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
