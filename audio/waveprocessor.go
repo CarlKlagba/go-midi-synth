@@ -62,6 +62,7 @@ func NewWaveProcessor() *WaveProcessor {
 	for i := 0; i <= 127; i++ {
 		noteToFadeIn[uint8(i)] = 0
 	}
+
 	return &WaveProcessor{
 		atomicPlayedNotes,
 		atomicWaveform,
@@ -69,7 +70,7 @@ func NewWaveProcessor() *WaveProcessor {
 		noteToPhase,
 		velocityToAmp,
 		noteToFadeIn,
-		441, // 10ms de fade-in
+		4410, // 10ms de fade-in
 		0,
 		maxAmplitude,
 	}
@@ -80,11 +81,19 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 	for i := range out {
 		o := float32(0.0)
 		for _, midiNote := range notesPlayed.Notes {
+			if !midiNote.On {
+				w.noteToFadeIn[midiNote.Note] = 0
+				continue
+			}
+
 			freq := w.noteToFreq[midiNote.Note]
 			phase := w.noteToPhase[midiNote.Note]
 			amp := w.velocityToAmp[midiNote.Velocity]
 
-			step := freq / sampleRate
+			if w.noteToFadeIn[midiNote.Note] < w.fadeInCount {
+				amp = amp * (float64(w.noteToFadeIn[midiNote.Note]) / float64(w.fadeInCount))
+				w.noteToFadeIn[midiNote.Note]++
+			}
 
 			switch waveform {
 			case Sine:
@@ -99,6 +108,7 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 				o += 0.
 			}
 
+			step := freq / sampleRate
 			_, w.noteToPhase[midiNote.Note] = math.Modf(phase + step)
 		}
 

@@ -10,6 +10,7 @@ import (
 type MidiNote struct {
 	Note     uint8
 	Velocity uint8
+	On       bool
 }
 
 const midiNoteOn byte = 0x90
@@ -29,21 +30,32 @@ func ListenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Posit
 		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
 
 		if canal == midiNoteOn && velocity > 0 {
-			playedNotes = append(playedNotes, MidiNote{note, velocity})
+			playedNotes = turnOnNote(note, velocity)
 			n := NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
 		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) {
-			playedNotes = deleteNote(note, playedNotes)
+			playedNotes = turnOffNote(note, playedNotes)
 			n := NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
 		}
 	}
 }
 
-func deleteNote(note byte, playedNotes []MidiNote) []MidiNote {
+func turnOnNote(note byte, velocity byte) []MidiNote {
 	for i, n := range playedNotes {
 		if n.Note == note {
-			playedNotes = append(playedNotes[:i], playedNotes[i+1:]...)
+			playedNotes[i].Velocity = velocity
+			playedNotes[i].On = true
+			return playedNotes
+		}
+	}
+	return append(playedNotes, MidiNote{note, velocity, true})
+}
+
+func turnOffNote(note byte, playedNotes []MidiNote) []MidiNote {
+	for i, n := range playedNotes {
+		if n.Note == note {
+			playedNotes[i].On = false
 			break
 		}
 	}

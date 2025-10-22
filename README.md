@@ -21,6 +21,8 @@ This a live midi synthesizer in go.
 - [ ] Reverb effect
 - [ ] ADSR envelope
   - [ ] Attack
+    - [X] implement fade in
+    - [ ] make it parametric
   - [ ] Decay
   - [ ] Sustain
   - [ ] Release
