@@ -98,7 +98,7 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 				o += 0.
 			}
 
-			_, w.noteToPhase[uint8(midiNote.Note)] = math.Modf(phase + step)
+			_, w.noteToPhase[midiNote.Note] = math.Modf(phase + step)
 		}
 
 		out[i] = o

@@ -10,18 +10,13 @@ import (
 	"gitlab.com/gomidi/rtmididrv"
 	"log"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
 const sampleRate = 44100
 
-const midiNoteOn byte = 0x90
-const midiNoteOff byte = 0x80
-
 var (
-	playedNotes []audio.MidiNote
-	noMidi      = false
+	noMidi = false
 )
 
 func main() {
@@ -83,7 +78,7 @@ func main() {
 
 	rd := reader.New(
 		reader.NoLogger(),
-		reader.Each(listenToMidiMessage(&wp.AtomicPlayedNotes)),
+		reader.Each(audio.ListenToMidiMessage(&wp.AtomicPlayedNotes)),
 	)
 
 	fmt.Println("En attente de messages MIDI...")
@@ -93,34 +88,6 @@ func main() {
 	keyreader.Controls(&wp.AtomicWaveform)
 
 	time.Sleep(50 * time.Minute)
-}
-
-func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
-	return func(pos *reader.Position, msg midi.Message) {
-		midiBytes := msg.Raw()
-		if len(midiBytes) < 3 {
-			return
-		}
-		canal := midiBytes[0] & 0xF0
-		note := midiBytes[1]
-		velocity := midiBytes[2]
-		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
-
-		if canal == midiNoteOn && velocity > 0 { // Note ON
-			playedNotes = append(playedNotes, audio.MidiNote{note, velocity})
-			n := audio.NotesPlayed{Notes: playedNotes}
-			atomicPlayedNotes.Store(n)
-		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) { // Note OFF
-			for i, n := range playedNotes {
-				if n.Note == note {
-					playedNotes = append(playedNotes[:i], playedNotes[i+1:]...)
-					break
-				}
-			}
-			n := audio.NotesPlayed{Notes: playedNotes}
-			atomicPlayedNotes.Store(n)
-		}
-	}
 }
 
 func must(err error) {
