@@ -7,6 +7,7 @@ import (
 
 const sampleRate = 44100
 const maxAmplitude = 0.8
+const maxVelocity = 127
 const noteOff = 0
 
 type NotesPlayed struct {
@@ -106,11 +107,14 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 }
 
 func midiVelocityToAmplitude(velocity uint8) float64 {
-	return (float64(velocity) / 127.0) * maxAmplitude
+	return (float64(velocity) / float64(maxVelocity)) * maxAmplitude
 }
 
 func midiNoteToFreq(note uint8) float64 {
-	return 440.0 * math.Pow(2, (float64(note)-69)/12)
+	const a4Freq = 440.0
+	const a4MidiNote = 69.0
+	const numberOfNotes = 12.0
+	return a4Freq * math.Pow(2, (float64(note)-a4MidiNote)/numberOfNotes)
 }
 
 func sinWave(phase float64) float64 {
