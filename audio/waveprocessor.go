@@ -93,7 +93,6 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 				//TODO: remove note when note off after release completed
 				continue
 			}
-
 			if midiNote.On && w.noteToRelease[midiNote.Note] != w.releaseCount {
 				w.noteToRelease[midiNote.Note] = w.releaseCount
 			}
