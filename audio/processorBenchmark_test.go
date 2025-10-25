@@ -120,12 +120,12 @@ func addNote(note uint8, velocity uint8, notes []MidiNote) []MidiNote {
 	return append(notes, MidiNote{note, velocity, true})
 }
 
-func offNote(note uint8, playedNotes []MidiNote) []MidiNote {
-	for i, n := range playedNotes {
+func offNote(note uint8, notes []MidiNote) []MidiNote {
+	for i, n := range notes {
 		if n.Note == note {
-			playedNotes[i].On = false
+			notes[i].On = false
 			break
 		}
 	}
-	return playedNotes
+	return notes
 }

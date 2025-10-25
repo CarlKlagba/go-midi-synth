@@ -87,7 +87,7 @@ func main() {
 
 	keyreader.Controls(&wp.AtomicWaveform)
 
-	time.Sleep(50 * time.Minute)
+	select {}
 }
 
 func must(err error) {
