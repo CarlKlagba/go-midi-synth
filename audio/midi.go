@@ -30,7 +30,7 @@ func ListenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Posit
 		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
 
 		if canal == midiNoteOn && velocity > 0 {
-			playedNotes = turnOnNote(note, velocity)
+			playedNotes = turnOnNote(note, velocity, playedNotes)
 			n := NotesPlayed{Notes: playedNotes}
 			atomicPlayedNotes.Store(n)
 		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) {
@@ -41,7 +41,7 @@ func ListenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Posit
 	}
 }
 
-func turnOnNote(note byte, velocity byte) []MidiNote {
+func turnOnNote(note byte, velocity byte, playedNotes []MidiNote) []MidiNote {
 	for i, n := range playedNotes {
 		if n.Note == note {
 			playedNotes[i].Velocity = velocity

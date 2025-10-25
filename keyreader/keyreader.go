@@ -16,7 +16,7 @@ func Controls(atomicWaveform *atomic.Value) {
 			log.Fatal(err)
 		}
 		defer keyboard.Close()
-		fmt.Println("Appuie sur 's' pour sinusoïdale, 'q' pour carrée, 'ESC' pour quitter")
+		fmt.Println("Appuyez sur 's' pour sinusoïdale, 'q' pour carrée, 't' pour triangulaire, 'w' pour dent de scie. 'Esc' ou 'Ctrl+C' pour quitter.")
 		for {
 			r, key, err := keyboard.GetKey()
 			if err != nil {
