@@ -30,7 +30,8 @@ func main() {
 	err := audio.StreamAudio(wp)
 	must(err)
 
-	audio.StartReadingMidiMessages(wp)
+	err = audio.StartReadingMidiMessages(wp)
+	must(err)
 
 	keyreader.Controls(&wp.AtomicWaveform)
 
@@ -46,7 +47,9 @@ func startWithNoMidi() {
 	note := audio.MidiNote{Note: 69, Velocity: 80}
 	notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
 	wp.AtomicPlayedNotes.Store(notes)
+
 	keyreader.Controls(&wp.AtomicWaveform)
+
 	time.Sleep(50 * time.Minute)
 	return
 }

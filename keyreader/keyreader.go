@@ -16,7 +16,11 @@ func Controls(atomicWaveform *atomic.Value) {
 			log.Fatal(err)
 		}
 		defer keyboard.Close()
-		fmt.Println("Appuyez sur 's' pour sinusoïdale, 'q' pour carrée, 't' pour triangulaire, 'w' pour dent de scie. 'Esc' ou 'Ctrl+C' pour quitter.")
+		fmt.Print("Press 's' for Sine wave")
+		fmt.Print(", 'q' for Square wave")
+		fmt.Print(", 't' for Triangle wave")
+		fmt.Print(", 'w' for Sawtooth wave")
+		fmt.Println(" or ESC or Ctrl+C to quit")
 		for {
 			r, key, err := keyboard.GetKey()
 			if err != nil {
@@ -24,24 +28,24 @@ func Controls(atomicWaveform *atomic.Value) {
 			}
 			switch key {
 			case keyboard.KeyEsc:
-				fmt.Println("Arrêt du programme")
+				fmt.Println("Exit program")
 				os.Exit(0)
 			case keyboard.KeyCtrlC:
-				fmt.Println("Arrêt du programme")
+				fmt.Println("Exit program")
 				os.Exit(0)
 			default:
 				switch r {
 				case 's':
-					fmt.Println("Forme d'onde: sinusoïdale")
+					fmt.Println("Waveform: Sine")
 					atomicWaveform.Store(audio.Sine)
 				case 'q':
-					fmt.Println("Forme d'onde: carrée")
+					fmt.Println("Waveform: Square")
 					atomicWaveform.Store(audio.Square)
 				case 't':
-					fmt.Println("Forme d'onde: Triangular")
+					fmt.Println("Waveform: Triangle")
 					atomicWaveform.Store(audio.Triangle)
 				case 'w':
-					fmt.Println("Forme d'onde: Sawtooth")
+					fmt.Println("Waveform: Sawtooth")
 					atomicWaveform.Store(audio.Sawtooth)
 				}
 			}

@@ -1,6 +1,9 @@
 package audio
 
-import "github.com/gordonklaus/portaudio"
+import (
+	"github.com/gordonklaus/portaudio"
+	"log"
+)
 
 func StreamAudio(wp *WaveProcessor) error {
 	must(portaudio.Initialize())
@@ -13,9 +16,19 @@ func StreamAudio(wp *WaveProcessor) error {
 		256,
 		wp.ProcessAudio,
 	)
-	must(err)
+
+	if err != nil {
+		return err
+	}
 	defer stream.Close()
-	must(stream.Start())
+
+	log.Println("Starting audio stream...")
+	err = stream.Start()
+	if err != nil {
+		return err
+	}
+
+	log.Println("Audio stream started.")
 	defer stream.Stop()
 	return err
 }
