@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"gitlab.com/gomidi/midi"
 	"gitlab.com/gomidi/midi/reader"
+	"gitlab.com/gomidi/rtmididrv"
+	"log"
 	"sync/atomic"
 )
 
@@ -18,7 +20,36 @@ const midiNoteOff byte = 0x80
 
 var playedNotes []MidiNote
 
-func ListenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
+func StartReadingMidiMessages(wp *WaveProcessor) {
+	drv, err := rtmididrv.New()
+	must(err)
+	defer must(drv.Close())
+
+	ins, err := drv.Ins()
+	must(err)
+
+	if len(ins) == 0 {
+		log.Fatal("Aucun port MIDI d'entrée trouvé")
+	}
+
+	in := ins[0]
+	must(in.Open())
+
+	defer func(in midi.In) {
+		must(in.Close())
+	}(in)
+
+	rd := reader.New(
+		reader.NoLogger(),
+		reader.Each(listenToMidiMessage(&wp.AtomicPlayedNotes)),
+	)
+
+	fmt.Println("En attente de messages MIDI...")
+	err1 := rd.ListenTo(in)
+	must(err1)
+}
+
+func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
 	return func(pos *reader.Position, msg midi.Message) {
 		midiBytes := msg.Raw()
 		if len(midiBytes) < 3 {
@@ -60,4 +91,10 @@ func turnOffNote(note byte, playedNotes []MidiNote) []MidiNote {
 		}
 	}
 	return playedNotes
+}
+
+func must(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
