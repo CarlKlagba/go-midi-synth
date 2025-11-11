@@ -13,7 +13,7 @@ This a live midi synthesizer in go.
 - [x] Sin wave oscillator
 - [x] Polyphony
 - [x] Fix phase clicking noise
-- [ ] fix clicking when releasing note
+- [x] fix clicking when releasing note
   - [ ] implement a minimal release envelope
 - [X] Square wave oscillator
 - [X] Saw wave oscillator
