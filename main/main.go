@@ -46,6 +46,7 @@ func main() {
 
 	err = audio.StartReadingMidiMessages(wp)
 	must(err)
+	defer audio.CloseMidiReader()
 
 	keyreader.Controls(&wp.AtomicWaveform)
 

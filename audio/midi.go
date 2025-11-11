@@ -20,16 +20,18 @@ const midiNoteOff byte = 0x80
 
 var playedNotes []MidiNote
 
+var driverInstance *rtmididrv.Driver
+var midiIn midi.In
+
 func StartReadingMidiMessages(wp *WaveProcessor) error {
-	drv, err := rtmididrv.New()
+	var err error
+	driverInstance, err = rtmididrv.New()
 
 	if err != nil {
 		return err
 	}
 
-	defer must(drv.Close())
-
-	ins, err := drv.Ins()
+	ins, err := driverInstance.Ins()
 
 	if err != nil {
 		return err
@@ -39,13 +41,10 @@ func StartReadingMidiMessages(wp *WaveProcessor) error {
 		log.Fatal("No MIDI input devices found")
 	}
 
-	in := ins[0]
-	must(in.Open())
-	defer func(in midi.In) {
-		must(in.Close())
-	}(in)
+	midiIn = ins[0]
+	must(midiIn.Open())
 
-	log.Println("MIDI Input Device:", in.String())
+	log.Println("MIDI Input Device:", midiIn.String())
 
 	rd := reader.New(
 		reader.NoLogger(),
@@ -53,13 +52,18 @@ func StartReadingMidiMessages(wp *WaveProcessor) error {
 	)
 
 	log.Println("Listening to MIDI messages...")
-	err = rd.ListenTo(in)
+	err = rd.ListenTo(midiIn)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func CloseMidiReader() {
+	must(driverInstance.Close())
+	must(midiIn.Close())
 }
 
 func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
