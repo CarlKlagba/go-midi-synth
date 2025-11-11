@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"log"
+	"os"
 )
 
 const sampleRate = 44100
@@ -17,20 +18,27 @@ type model struct {
 	selected       int
 	volume         float64
 	volumeProgress progress.Model
+	waveProcessor  *audio.WaveProcessor
 }
 
 func main() {
-	err2 := audio.PlayNote()
-	if err2 != nil {
-		fmt.Printf("Error starting audio: %v", err2)
-		log.Fatal(err2)
+
+	wp := audio.NewWaveProcessor()
+	stream, err := audio.StreamAudio(wp)
+	if err != nil {
+		log.Fatalf("Failed to start audio stream: %v", err)
 	}
-	select {}
-	/*p := tea.NewProgram(initialModel())
+	defer audio.CloseAudioStream(stream)
+
+	note := audio.MidiNote{Note: 69, Velocity: 80, On: true}
+	notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
+	wp.AtomicPlayedNotes.Store(notes)
+
+	p := tea.NewProgram(initialModel(wp))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
-	}*/
+	}
 }
 
 type audioProcessOkMsg int
@@ -106,13 +114,14 @@ func volumeDownCmd() tea.Cmd {
 	}
 }
 
-func initialModel() model {
+func initialModel(wp *audio.WaveProcessor) model {
 	return model{
 		choices:        []string{"Sine Wave", "Square Wave", "Triangle Wave", "Sawtooth Wave"},
 		cursor:         0,
 		selected:       0,
 		volume:         0.5,
 		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
+		waveProcessor:  wp,
 	}
 }
 
