@@ -130,7 +130,6 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 			step := freq / sampleRate
 			_, w.noteToPhase[midiNote.Note] = math.Modf(phase + step)
 		}
-
 		out[i] = o
 	}
 }

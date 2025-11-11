@@ -22,13 +22,27 @@ func main() {
 	}
 
 	if noMidi {
-		startWithNoMidi()
+		wp := audio.NewWaveProcessor()
+
+		stream, err := audio.StreamAudio(wp)
+		must(err)
+		defer audio.CloseAudioStream(stream)
+
+		note := audio.MidiNote{Note: 69, Velocity: 80}
+		notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
+		wp.AtomicPlayedNotes.Store(notes)
+
+		keyreader.Controls(&wp.AtomicWaveform)
+
+		time.Sleep(50 * time.Minute)
 		return
 	}
+
 	wp := audio.NewWaveProcessor()
 
-	err := audio.StreamAudio(wp)
+	stream, err := audio.StreamAudio(wp)
 	must(err)
+	defer audio.CloseAudioStream(stream)
 
 	err = audio.StartReadingMidiMessages(wp)
 	must(err)
@@ -36,22 +50,6 @@ func main() {
 	keyreader.Controls(&wp.AtomicWaveform)
 
 	select {}
-}
-
-func startWithNoMidi() {
-	wp := audio.NewWaveProcessor()
-
-	err := audio.StreamAudio(wp)
-	must(err)
-
-	note := audio.MidiNote{Note: 69, Velocity: 80}
-	notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
-	wp.AtomicPlayedNotes.Store(notes)
-
-	keyreader.Controls(&wp.AtomicWaveform)
-
-	time.Sleep(50 * time.Minute)
-	return
 }
 
 func must(err error) {

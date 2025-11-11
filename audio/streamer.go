@@ -5,10 +5,8 @@ import (
 	"log"
 )
 
-func StreamAudio(wp *WaveProcessor) error {
+func StreamAudio(wp *WaveProcessor) (*portaudio.Stream, error) {
 	must(portaudio.Initialize())
-	defer portaudio.Terminate()
-
 	stream, err := portaudio.OpenDefaultStream(
 		0,
 		1,
@@ -18,17 +16,22 @@ func StreamAudio(wp *WaveProcessor) error {
 	)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer stream.Close()
 
 	log.Println("Starting audio stream...")
 	err = stream.Start()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Println("Audio stream started.")
-	defer stream.Stop()
-	return err
+	return stream, nil
+}
+
+func CloseAudioStream(stream *portaudio.Stream) {
+	log.Println("Closing audio stream...")
+	_ = portaudio.Terminate()
+	_ = stream.Close()
+	_ = stream.Stop()
 }
