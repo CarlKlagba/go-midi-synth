@@ -28,7 +28,7 @@ func main() {
 		must(err)
 		defer audio.CloseAudioStream(stream)
 
-		note := audio.MidiNote{Note: 69, Velocity: 80}
+		note := audio.MidiNote{Note: 69, Velocity: 80, On: true}
 		notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
 		wp.AtomicPlayedNotes.Store(notes)
 
