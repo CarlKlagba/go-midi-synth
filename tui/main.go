@@ -10,10 +10,8 @@ import (
 	"os"
 )
 
-const sampleRate = 44100
-
 type model struct {
-	choices        []string
+	waves          []audio.Waveform
 	cursor         int
 	selected       int
 	volume         float64
@@ -36,42 +34,41 @@ func main() {
 
 	p := tea.NewProgram(initialModel(wp))
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
+		fmt.Printf("Error starting the TUI: %v", err)
 		os.Exit(1)
 	}
 }
 
-type audioProcessOkMsg int
-type audioProcessErrMsg struct{ error }
-
-type volumeUpMsg float64
-type volumeDownMsg float64
-
-func (m model) Init() tea.Cmd {
-	return playNote()
-}
-
-func playNote() func() tea.Msg {
-	return func() tea.Msg {
-		return audioProcessOkMsg(1)
+func initialModel(wp *audio.WaveProcessor) model {
+	return model{
+		waves:          []audio.Waveform{audio.Sine, audio.Square, audio.Triangle, audio.Sawtooth},
+		cursor:         0,
+		selected:       0,
+		volume:         0.5,
+		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
+		waveProcessor:  wp,
 	}
 }
 
+func (m model) Init() tea.Cmd {
+	return nil
+}
+
+type volumeUpMsg float64
+type volumeDownMsg float64
+type waveformSelectedMsg int
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-
-	case audioProcessOkMsg:
-		return m, nil
-
-	case audioProcessErrMsg:
-		log.Println("Arrêt du flux audio")
-		return m, tea.Quit
 
 	case volumeUpMsg:
 		m.volume += 0.1
 
 	case volumeDownMsg:
 		m.volume -= 0.1
+
+	case waveformSelectedMsg:
+		m.selected = int(msg)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -81,12 +78,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
+			if m.cursor < len(m.waves)-1 {
 				m.cursor++
 			}
 
 		case "enter", " ":
-			m.selected = m.cursor
+			return m, selectWaveformCmd(&m)
 
 		case "+", "right":
 			return m, volumeUpCmd()
@@ -114,14 +111,10 @@ func volumeDownCmd() tea.Cmd {
 	}
 }
 
-func initialModel(wp *audio.WaveProcessor) model {
-	return model{
-		choices:        []string{"Sine Wave", "Square Wave", "Triangle Wave", "Sawtooth Wave"},
-		cursor:         0,
-		selected:       0,
-		volume:         0.5,
-		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
-		waveProcessor:  wp,
+func selectWaveformCmd(m *model) tea.Cmd {
+	m.waveProcessor.AtomicWaveform.Store(m.waves[m.cursor])
+	return func() tea.Msg {
+		return waveformSelectedMsg(m.cursor)
 	}
 }
 
@@ -135,7 +128,7 @@ var (
 
 func (m model) View() string {
 	s := headerStyle.Render("Sexy Synth") + "\n"
-	for i, choice := range m.choices {
+	for i, wave := range m.waves {
 		cursor := " "
 		if m.cursor == i {
 			cursor = ">"
@@ -146,7 +139,8 @@ func (m model) View() string {
 			style = selectedStyle
 		}
 
-		line := cursorStyle.Render(cursor) + style.Render(" "+choice)
+		line :=
+			cursorStyle.Render(cursor) + style.Render(" "+toString(wave))
 
 		s += line + "\n"
 	}
@@ -155,4 +149,20 @@ func (m model) View() string {
 	s += faintStyle.Render("\nPress space to select, q to quit.\n")
 
 	return s
+}
+
+func toString(wave audio.Waveform) string {
+	switch wave {
+	case audio.Sine:
+		return "Sine Wave"
+	case audio.Square:
+		return "Square Wave"
+	case audio.Triangle:
+		return "Triangle Wave"
+	case audio.Sawtooth:
+		return "Sawtooth Wave"
+	default:
+		return "Unknown Waveform"
+	}
+
 }
