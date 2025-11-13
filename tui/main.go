@@ -54,18 +54,14 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
-type volumeUpMsg float64
-type volumeDownMsg float64
+type volumeSetAtMsg float64
 type waveformSelectedMsg int
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
-	case volumeUpMsg:
-		m.volume += 0.1
-
-	case volumeDownMsg:
-		m.volume -= 0.1
+	case volumeSetAtMsg:
+		m.volume = float64(msg)
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
@@ -86,10 +82,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, selectWaveformCmd(&m)
 
 		case "+", "right":
-			return m, volumeUpCmd()
+			return m, volumeUpCmd(&m)
 
 		case "-", "left":
-			return m, volumeDownCmd()
+			return m, volumeDownCmd(&m)
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -99,15 +95,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func volumeUpCmd() tea.Cmd {
+func volumeUpCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetVolume(m.volume + 0.1)
+	updatedVolume := m.waveProcessor.GetVolume()
 	return func() tea.Msg {
-		return volumeUpMsg(0.1)
+		return volumeSetAtMsg(updatedVolume)
 	}
 }
 
-func volumeDownCmd() tea.Cmd {
+func volumeDownCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetVolume(m.volume - 0.1)
+	updatedVolume := m.waveProcessor.GetVolume()
 	return func() tea.Msg {
-		return volumeDownMsg(0.1)
+		return volumeSetAtMsg(updatedVolume)
 	}
 }
 
