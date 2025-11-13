@@ -32,7 +32,8 @@ This a live midi synthesizer in go.
 - [ ] Stereo output
 - [ ] EQ ?
 - [ ] CLI GUI:
-  - [ ] Oscillator type selection
+  - [X] Oscillator type selection
+  - [ ] Midi input selection
   - [ ] Visualize the waveform
   - [ ] Volume control
   - [ ] Attack time control
