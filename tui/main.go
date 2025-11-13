@@ -96,7 +96,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func volumeUpCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetVolume(m.volume + 0.1)
+	m.waveProcessor.SetVolume(m.volume + 0.01)
 	updatedVolume := m.waveProcessor.GetVolume()
 	return func() tea.Msg {
 		return volumeSetAtMsg(updatedVolume)
@@ -104,7 +104,7 @@ func volumeUpCmd(m *model) tea.Cmd {
 }
 
 func volumeDownCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetVolume(m.volume - 0.1)
+	m.waveProcessor.SetVolume(m.volume - 0.01)
 	updatedVolume := m.waveProcessor.GetVolume()
 	return func() tea.Msg {
 		return volumeSetAtMsg(updatedVolume)
