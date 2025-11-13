@@ -139,8 +139,7 @@ func (m model) View() string {
 			style = selectedStyle
 		}
 
-		line :=
-			cursorStyle.Render(cursor) + style.Render(" "+toString(wave))
+		line := cursorStyle.Render(cursor) + style.Render(" "+toString(wave))
 
 		s += line + "\n"
 	}
