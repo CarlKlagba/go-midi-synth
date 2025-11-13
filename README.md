@@ -39,6 +39,7 @@ This a live midi synthesizer in go.
   - [ ] Attack time control
   - [ ] Release time control
   - [ ] Reverb amount control
+  - [ ] Print playing notes
 - [ ] Refactoring:
   - [ ] Error handling
   - [ ] make a debug system with logging
