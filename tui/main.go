@@ -163,5 +163,4 @@ func toString(wave audio.Waveform) string {
 	default:
 		return "Unknown Waveform"
 	}
-
 }
