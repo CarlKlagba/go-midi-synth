@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/CarlKlagba/go-midi-synth/audio"
 	"github.com/CarlKlagba/go-midi-synth/keyreader"
 	"log"
@@ -44,11 +45,16 @@ func main() {
 	must(err)
 	defer audio.CloseAudioStream(stream)
 
-	err = audio.StartReadingMidiMessages(wp)
+	midiNotesChan := make(chan []uint8)
+	err = audio.StartReadingMidiMessages(wp, midiNotesChan)
 	must(err)
 	defer audio.CloseMidiReader()
 
 	keyreader.Controls(&wp.AtomicWaveform)
+
+	for noteMidi := range midiNotesChan {
+		fmt.Println(noteMidi)
+	}
 
 	select {}
 }

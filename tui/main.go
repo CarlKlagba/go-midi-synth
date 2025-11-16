@@ -14,6 +14,8 @@ type model struct {
 	waves          []audio.Waveform
 	cursor         int
 	selected       int
+	notesReceiver  <-chan []uint8
+	notesPlayed    []uint8
 	volume         float64
 	volumeProgress progress.Model
 	waveProcessor  *audio.WaveProcessor
@@ -28,22 +30,28 @@ func main() {
 	}
 	defer audio.CloseAudioStream(stream)
 
-	note := audio.MidiNote{Note: 69, Velocity: 80, On: true}
-	notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
-	wp.AtomicPlayedNotes.Store(notes)
+	midiNotesChan := make(chan []uint8, 30)
+	defer close(midiNotesChan)
+	err = audio.StartReadingMidiMessages(wp, midiNotesChan)
+	if err != nil {
+		log.Fatalf("Failed to start midi reading: %v", err)
+	}
+	defer audio.CloseMidiReader()
 
-	p := tea.NewProgram(initialModel(wp))
+	p := tea.NewProgram(initialModel(wp, midiNotesChan))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error starting the TUI: %v", err)
 		os.Exit(1)
 	}
 }
 
-func initialModel(wp *audio.WaveProcessor) model {
+func initialModel(wp *audio.WaveProcessor, notesReceiver <-chan []uint8) model {
 	return model{
 		waves:          []audio.Waveform{audio.Sine, audio.Square, audio.Triangle, audio.Sawtooth},
 		cursor:         0,
 		selected:       0,
+		notesReceiver:  notesReceiver,
+		notesPlayed:    make([]uint8, 0),
 		volume:         0.5,
 		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
 		waveProcessor:  wp,
@@ -51,11 +59,19 @@ func initialModel(wp *audio.WaveProcessor) model {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return waitForNoteCmd(&m)
+}
+
+func waitForNoteCmd(m *model) tea.Cmd {
+	return func() tea.Msg {
+		np := <-m.notesReceiver
+		return playNotesMsg(np)
+	}
 }
 
 type volumeSetAtMsg float64
 type waveformSelectedMsg int
+type playNotesMsg []uint8
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -65,6 +81,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
+
+	case playNotesMsg:
+		m.notesPlayed = msg
+		return m, waitForNoteCmd(&m)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -145,6 +165,7 @@ func (m model) View() string {
 	}
 
 	s += "\n" + m.volumeProgress.ViewAs(m.volume) + "\n"
+	s += "\n \t" + fmt.Sprintln(m.notesPlayed) + "\n"
 	s += faintStyle.Render("\nPress space to select, q to quit.\n")
 
 	return s
