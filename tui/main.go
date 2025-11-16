@@ -143,11 +143,12 @@ var (
 	cursorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))
 	listStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("28"))
 	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
+	notesStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
 	faintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Faint(true)
 )
 
 func (m model) View() string {
-	s := headerStyle.Render("Sexy Synth") + "\n"
+	s := headerStyle.Render("Sexy Synth") + "\t\t" + notesStyle.Render(DisplayNotes(m.notesPlayed)) + "\n"
 	for i, wave := range m.waves {
 		cursor := " "
 		if m.cursor == i {
@@ -165,7 +166,6 @@ func (m model) View() string {
 	}
 
 	s += "\n" + m.volumeProgress.ViewAs(m.volume) + "\n"
-	s += "\n \t" + fmt.Sprintln(m.notesPlayed) + "\n"
 	s += faintStyle.Render("\nPress space to select, q to quit.\n")
 
 	return s
