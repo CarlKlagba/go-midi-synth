@@ -1,15 +1,11 @@
 package main
 
-import (
-	"strconv"
-	"strings"
-)
-
+/*
 var doremi = [12]string{
 	"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 }
 
-func DisplayNotes(notes []uint8) string {
+func displayNotes(notes []uint8) string {
 	var sb strings.Builder
 	for _, n := range notes {
 		sb.WriteString(DisplayNote(n))
@@ -18,7 +14,7 @@ func DisplayNotes(notes []uint8) string {
 	return sb.String()
 }
 
-func DisplayNote(n uint8) string {
+func displayNote(n uint8) string {
 	u := int(n % 12)
 	r := int(n/12) - 1
 	var sb strings.Builder
@@ -26,3 +22,4 @@ func DisplayNote(n uint8) string {
 	sb.WriteString(strconv.Itoa(r))
 	return sb.String()
 }
+*/

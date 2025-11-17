@@ -5,6 +5,7 @@ import (
 	"gitlab.com/gomidi/midi/reader"
 	"gitlab.com/gomidi/rtmididrv"
 	"log"
+	"slices"
 	"sync/atomic"
 )
 
@@ -85,13 +86,16 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Value, notesChan chan<- []uin
 		n := NotesPlayed{Notes: playedNotes}
 		atomicPlayedNotes.Store(n)
 
-		go func() {
-			on := notesOn(playedNotes)
-			//fmt.Println("send to chan: ", on)
-			notesChan <- on
-			//Seem blocking, check if stop blocking with reading
-			//fmt.Println("stop blocking ")
-		}()
+		if notesChan != nil {
+			go func() {
+				on := notesOn(playedNotes)
+				slices.Sort(on)
+				//fmt.Println("send to chan: ", on)
+				notesChan <- on
+				//Seem blocking, check if stop blocking with reading
+				//fmt.Println("stop blocking ")
+			}()
+		}
 	}
 }
 
