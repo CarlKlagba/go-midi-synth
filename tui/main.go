@@ -1,14 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"github.com/CarlKlagba/go-midi-synth/audio"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 )
+
+type progFlags struct {
+	noNotesDisplay bool
+}
+
+var flags = progFlags{
+	noNotesDisplay: false,
+}
+
+func (p *progFlags) flag(progArg []string) {
+	for _, a := range progArg {
+		if a == "--no-note-display" || a == "-nd" {
+			p.noNotesDisplay = true
+			log.Println("No Notes Display")
+		}
+	}
+}
 
 type model struct {
 	waves          []audio.Waveform
@@ -22,6 +40,8 @@ type model struct {
 }
 
 func main() {
+	args := os.Args[1:]
+	flags.flag(args)
 
 	wp := audio.NewWaveProcessor()
 	stream, err := audio.StreamAudio(wp)
@@ -30,8 +50,13 @@ func main() {
 	}
 	defer audio.CloseAudioStream(stream)
 
-	midiNotesChan := make(chan []uint8, 30)
-	defer close(midiNotesChan)
+	var midiNotesChan chan []uint8 = nil
+	if !flags.noNotesDisplay {
+		//Putting the buffer size to 100 seems to fix the issue with clipping but need to look further into it
+		midiNotesChan = make(chan []uint8, 100)
+		defer close(midiNotesChan)
+	}
+
 	err = audio.StartReadingMidiMessages(wp, midiNotesChan)
 	if err != nil {
 		log.Fatalf("Failed to start midi reading: %v", err)
@@ -40,8 +65,7 @@ func main() {
 
 	p := tea.NewProgram(initialModel(wp, midiNotesChan))
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error starting the TUI: %v", err)
-		os.Exit(1)
+		log.Fatalf("Error starting the TUI: %v", err)
 	}
 }
 
@@ -63,6 +87,9 @@ func (m model) Init() tea.Cmd {
 }
 
 func waitForNoteCmd(m *model) tea.Cmd {
+	if m.notesReceiver != nil {
+		return nil
+	}
 	return func() tea.Msg {
 		np := <-m.notesReceiver
 		return playNotesMsg(np)
@@ -184,4 +211,26 @@ func toString(wave audio.Waveform) string {
 	default:
 		return "Unknown Waveform"
 	}
+}
+
+var doremi = [12]string{
+	"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+}
+
+func DisplayNotes(notes []uint8) string {
+	var sb strings.Builder
+	for _, n := range notes {
+		sb.WriteString(displayNote(n))
+		sb.WriteString(" ")
+	}
+	return sb.String()
+}
+
+func displayNote(n uint8) string {
+	u := int(n % 12)
+	r := int(n/12) - 1
+	var sb strings.Builder
+	sb.WriteString(doremi[u])
+	sb.WriteString(strconv.Itoa(r))
+	return sb.String()
 }
