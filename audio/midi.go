@@ -23,6 +23,8 @@ var playedNotes []MidiNote
 var driverInstance *rtmididrv.Driver
 var midiIn midi.In
 
+//var rd *reader.Reader
+
 func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) error {
 	var err error
 	driverInstance, err = rtmididrv.New()
@@ -62,6 +64,7 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 }
 
 func CloseMidiReader() {
+	log.Println("Closing Midi Reader...")
 	must(driverInstance.Close())
 	must(midiIn.Close())
 }
