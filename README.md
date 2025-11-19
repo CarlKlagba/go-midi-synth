@@ -35,11 +35,12 @@ This a live midi synthesizer in go.
   - [X] Oscillator type selection
   - [ ] Midi input selection
   - [ ] Visualize the waveform
-  - [ ] Volume control
+  - [X] Volume control
   - [ ] Attack time control
   - [ ] Release time control
   - [ ] Reverb amount control
-  - [ ] Print playing notes
+  - [X] Print playing notes
+  - [ ] Check how to see loggs when using GUI
 - [ ] Refactoring:
   - [ ] Error handling
   - [ ] make a debug system with logging
