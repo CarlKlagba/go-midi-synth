@@ -42,7 +42,7 @@ func NewWaveProcessor() *WaveProcessor {
 	velocityToAmp := make(map[uint8]float64, 128)
 	noteToAttack := make(map[uint8]uint16, 128)
 	noteToRelease := make(map[uint8]uint16, 128)
-	releaseCount := uint16(44100) // A mettre en paramettre
+	releaseCount := uint16(4410) // A mettre en paramettre
 
 	var atomicPlayedNotes atomic.Value
 	atomicPlayedNotes.Store(NotesPlayed{Notes: make([]MidiNote, 0, 10)}) //careful we only allocate 10, so we might only be able to play 10notes at the time
@@ -151,25 +151,26 @@ func (w *WaveProcessor) SetVolume(volume float64) {
 		volume = 1.0
 	}
 	w.atomicMaxAmp.Store(volume)
+
 }
 
 func (w *WaveProcessor) GetVolume() float64 {
 	return w.atomicMaxAmp.Load().(float64)
 }
 
-func (w *WaveProcessor) SetRelease(millitsec float64) {
-	if millitsec < 0.0 {
-		millitsec = 0.0
+func (w *WaveProcessor) SetReleaseTime(millitsec float64) {
+	if millitsec < 5.0 {
+		millitsec = 5.0
 	}
-	if millitsec > 10.0 {
-		millitsec = 10.0
+	if millitsec > 100.0 {
+		millitsec = 100.0
 	}
-	// 441 == 1s ??
-	val := millitsec * 441
+	// 441 == 1ms ??
+	val := uint16(millitsec * 441)
 	w.atomicReleaseCount.Store(val)
 }
 
-func (w *WaveProcessor) GetRelease() float64 {
+func (w *WaveProcessor) GetReleaseTime() float64 {
 	r := w.atomicReleaseCount.Load().(uint16)
 	return float64(r) / 441.0
 }

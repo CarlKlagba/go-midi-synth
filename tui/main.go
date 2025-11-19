@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/CarlKlagba/go-midi-synth/audio"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,6 +38,7 @@ type model struct {
 	volume         float64
 	volumeProgress progress.Model
 	waveProcessor  *audio.WaveProcessor
+	releaseTime    float64
 }
 
 func main() {
@@ -76,9 +78,10 @@ func initialModel(wp *audio.WaveProcessor, notesReceiver <-chan []uint8) model {
 		selected:       0,
 		notesReceiver:  notesReceiver,
 		notesPlayed:    make([]uint8, 0),
-		volume:         0.5,
+		volume:         0.5, //Recuperer cette valeur du wave processor
 		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
 		waveProcessor:  wp,
+		releaseTime:    wp.GetReleaseTime(),
 	}
 }
 
@@ -96,15 +99,19 @@ func waitForNoteCmd(m *model) tea.Cmd {
 	}
 }
 
-type volumeSetAtMsg float64
-type waveformSelectedMsg int
 type playNotesMsg []uint8
+type waveformSelectedMsg int
+type volumeSetAtMsg float64
+type releaseTimeSetAtMsg float64
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case volumeSetAtMsg:
 		m.volume = float64(msg)
+
+	case releaseTimeSetAtMsg:
+		m.releaseTime = float64(msg)
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
@@ -134,12 +141,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "-", "left":
 			return m, volumeDownCmd(&m)
 
+		case "r":
+			return m, releaseDownCmd(&m)
+		case "R":
+			return m, releaseUpCmd(&m)
+
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		}
 	}
 
 	return m, nil
+}
+
+func selectWaveformCmd(m *model) tea.Cmd {
+	m.waveProcessor.AtomicWaveform.Store(m.waves[m.cursor])
+	return func() tea.Msg {
+		return waveformSelectedMsg(m.cursor)
+	}
 }
 
 func volumeUpCmd(m *model) tea.Cmd {
@@ -157,25 +176,34 @@ func volumeDownCmd(m *model) tea.Cmd {
 		return volumeSetAtMsg(updatedVolume)
 	}
 }
-
-func selectWaveformCmd(m *model) tea.Cmd {
-	m.waveProcessor.AtomicWaveform.Store(m.waves[m.cursor])
+func releaseUpCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetReleaseTime(m.releaseTime + 5.0)
 	return func() tea.Msg {
-		return waveformSelectedMsg(m.cursor)
+		return releaseTimeSetAtMsg(m.waveProcessor.GetReleaseTime())
+	}
+}
+
+func releaseDownCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetReleaseTime(m.releaseTime - 5.0)
+	return func() tea.Msg {
+		return releaseTimeSetAtMsg(m.waveProcessor.GetReleaseTime())
 	}
 }
 
 var (
-	headerStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("232")).Background(lipgloss.Color("34")).Padding(0, 2, 0, 2).Bold(true)
-	cursorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))
-	listStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("28"))
-	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
-	notesStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
-	faintStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Faint(true)
+	headerStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("232")).Background(lipgloss.Color("34")).Padding(0, 2, 0, 2).Bold(true)
+	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))
+	basicTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))
+	listStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("28"))
+	boldTextStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
+	notesStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
+	faintStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Faint(true)
 )
 
 func (m model) View() string {
-	s := headerStyle.Render("Sexy Synth") + "\t\t" + notesStyle.Render(DisplayNotes(m.notesPlayed)) + "\n"
+	var full strings.Builder
+	full.WriteString(headerStyle.Render("Sexy Synth") + "\t\t" + notesStyle.Render(DisplayNotes(m.notesPlayed)) + "\n")
+	var waves strings.Builder
 	for i, wave := range m.waves {
 		cursor := " "
 		if m.cursor == i {
@@ -184,18 +212,23 @@ func (m model) View() string {
 
 		style := listStyle
 		if m.selected == i {
-			style = selectedStyle
+			style = boldTextStyle
 		}
 
-		line := cursorStyle.Render(cursor) + style.Render(" "+toString(wave))
-
-		s += line + "\n"
+		waves.WriteString(cursorStyle.Render(cursor) + style.Render(" "+toString(wave)))
+		waves.WriteString("\n")
 	}
 
-	s += "\n" + m.volumeProgress.ViewAs(m.volume) + "\n"
-	s += faintStyle.Render("\nPress space to select, q to quit.\n")
+	release := lipgloss.JoinVertical(lipgloss.Top,
+		boldTextStyle.Render("Release"),
+		basicTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.releaseTime, 'f', 1, 32))),
+		faintStyle.Render("r - R"))
 
-	return s
+	full.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, waves.String(), "       ", release))
+	full.WriteString("\n" + m.volumeProgress.ViewAs(m.volume) + "\n")
+	full.WriteString(faintStyle.Render("\nPress space to select, q to quit.\n"))
+
+	return full.String()
 }
 
 func toString(wave audio.Waveform) string {
