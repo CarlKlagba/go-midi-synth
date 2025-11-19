@@ -202,7 +202,9 @@ var (
 
 func (m model) View() string {
 	var full strings.Builder
-	full.WriteString(headerStyle.Render("Sexy Synth") + "\t\t" + notesStyle.Render(DisplayNotes(m.notesPlayed)) + "\n")
+
+	full.WriteString(
+		fmt.Sprintf("%s\t\t%s \n", headerStyle.Render("Sexy Synth"), notesStyle.Render(DisplayNotes(m.notesPlayed))))
 	var waves strings.Builder
 	for i, wave := range m.waves {
 		cursor := " "
