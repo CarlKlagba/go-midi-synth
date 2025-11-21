@@ -1,6 +1,5 @@
-package main
+package tui
 
-/*
 import "testing"
 
 type testParam struct {
@@ -41,4 +40,3 @@ func TestConvertIntToNote(t *testing.T) {
 		}
 	}
 }
-*/
