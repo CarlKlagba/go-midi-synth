@@ -25,7 +25,7 @@ func InitialModel(wp *audio.WaveProcessor, notesReceiver <-chan []uint8) tea.Mod
 		selected:       0,
 		notesReceiver:  notesReceiver,
 		notesPlayed:    make([]uint8, 0),
-		volume:         0.5, //Recuperer cette valeur du wave processor
+		volume:         wp.GetVolume(),
 		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
 		waveProcessor:  wp,
 		releaseTime:    wp.GetReleaseTime(),
