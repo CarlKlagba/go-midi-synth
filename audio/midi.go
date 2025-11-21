@@ -1,12 +1,13 @@
 package audio
 
 import (
-	"gitlab.com/gomidi/midi"
-	"gitlab.com/gomidi/midi/reader"
-	"gitlab.com/gomidi/rtmididrv"
 	"log"
 	"slices"
 	"sync/atomic"
+
+	"gitlab.com/gomidi/midi"
+	"gitlab.com/gomidi/midi/reader"
+	"gitlab.com/gomidi/rtmididrv"
 )
 
 type MidiNote struct {
@@ -50,7 +51,7 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 
 	rd := reader.New(
 		reader.NoLogger(),
-		reader.Each(listenToMidiMessage(&wp.AtomicPlayedNotes, notesSender)),
+		reader.Each(listenToMidiMessage(wp.AtomicPlayedNotes, notesSender)),
 	)
 
 	log.Println("Listening to MIDI messages...")
