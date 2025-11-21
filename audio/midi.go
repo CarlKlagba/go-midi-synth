@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"errors"
 	"log"
 	"slices"
 	"sync/atomic"
@@ -24,8 +25,6 @@ var playedNotes []MidiNote
 var driverInstance *rtmididrv.Driver
 var midiIn midi.In
 
-//var rd *reader.Reader
-
 func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) error {
 	var err error
 	driverInstance, err = rtmididrv.New()
@@ -41,7 +40,7 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 	}
 
 	if len(ins) == 0 {
-		log.Fatal("No MIDI input devices found")
+		return errors.New("no midi input device found")
 	}
 
 	midiIn = ins[0]
