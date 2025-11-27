@@ -20,7 +20,7 @@ type MidiNote struct {
 const midiNoteOn byte = 0x90
 const midiNoteOff byte = 0x80
 
-var playedNotes []MidiNote
+var atomicMidiNotes atomic.Pointer[[]MidiNote]
 
 var driverInstance *rtmididrv.Driver
 var midiIn midi.In
@@ -53,6 +53,9 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 		reader.Each(listenToMidiMessage(wp.AtomicPlayedNotes, notesSender)),
 	)
 
+	var playedNotes []MidiNote
+	atomicMidiNotes.Store(&playedNotes)
+
 	log.Println("Listening to MIDI messages...")
 	err = rd.ListenTo(midiIn)
 
@@ -75,23 +78,26 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Value, notesChan chan<- []uin
 		if len(midiBytes) < 3 {
 			return
 		}
-		canal := midiBytes[0] & 0xF0
+		channel := midiBytes[0] & 0xF0
 		note := midiBytes[1]
 		velocity := midiBytes[2]
-		//fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
+		//fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", channel, note, velocity)
 
-		if canal == midiNoteOn && velocity > 0 {
-			playedNotes = turnOnNote(note, velocity, playedNotes)
-		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) {
-			playedNotes = turnOffNote(note, playedNotes)
+		midiNotes := atomicMidiNotes.Load()
+		if channel == midiNoteOn && velocity > 0 {
+			playedNotes := turnOnNote(note, velocity, *midiNotes)
+			atomicPlayedNotes.Store(playedNotes)
+			atomicMidiNotes.Store(&playedNotes)
+		} else if (channel == midiNoteOff) || (channel == midiNoteOn && velocity == 0) {
+			playedNotes := turnOffNote(note, *midiNotes)
+			atomicPlayedNotes.Store(playedNotes)
+			atomicMidiNotes.Store(&playedNotes)
 		}
 
-		n := NotesPlayed{Notes: playedNotes}
-		atomicPlayedNotes.Store(n)
-
 		if notesChan != nil {
+			midiNotes := atomicMidiNotes.Load()
+			on := notesOn(*midiNotes)
 			go func() {
-				on := notesOn(playedNotes)
 				slices.Sort(on)
 				//fmt.Println("send to chan: ", on)
 				notesChan <- on

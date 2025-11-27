@@ -6,6 +6,7 @@ type playNotesMsg []uint8
 type waveformSelectedMsg int
 type volumeSetAtMsg float64
 type releaseTimeSetAtMsg float64
+type attackTimeSetAtMsg float64
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -15,6 +16,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case releaseTimeSetAtMsg:
 		m.releaseTime = float64(msg)
+
+	case attackTimeSetAtMsg:
+		m.attackTime = float64(msg)
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
@@ -48,6 +52,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, releaseDownCmd(&m)
 		case "R":
 			return m, releaseUpCmd(&m)
+
+		case "a":
+			return m, attackDownCmd(&m)
+		case "A":
+			return m, attackUpCmd(&m)
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -100,5 +109,19 @@ func releaseDownCmd(m *model) tea.Cmd {
 	m.waveProcessor.SetReleaseTime(m.releaseTime - 5.0)
 	return func() tea.Msg {
 		return releaseTimeSetAtMsg(m.waveProcessor.GetReleaseTime())
+	}
+}
+
+func attackUpCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetAttackTime(m.attackTime + 5.0)
+	return func() tea.Msg {
+		return attackTimeSetAtMsg(m.waveProcessor.GetAttackTime())
+	}
+}
+
+func attackDownCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetAttackTime(m.attackTime - 5.0)
+	return func() tea.Msg {
+		return attackTimeSetAtMsg(m.waveProcessor.GetAttackTime())
 	}
 }

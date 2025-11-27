@@ -7,14 +7,12 @@ import (
 
 const sampleRate = 44100
 const initialAmplitude = 0.8
-const initialReleaseCount = 441
-const initialAttackCount = 441
+const initialReleaseCount = 4410 //10ms
+const initialAttackCount = 4410  //10ms
 const maxVelocity = 127
 const noteOff = 0
 
-type NotesPlayed struct {
-	Notes []MidiNote
-}
+type NotesPlayed []MidiNote
 
 type Waveform int8
 
@@ -36,7 +34,6 @@ type WaveProcessor struct {
 	velocityToAmp      map[uint8]float64
 	noteToAttack       map[uint8]uint32
 	noteToRelease      map[uint8]uint32
-	attackCount        uint32
 }
 
 func NewWaveProcessor() *WaveProcessor {
@@ -47,7 +44,8 @@ func NewWaveProcessor() *WaveProcessor {
 	noteToRelease := make(map[uint8]uint32, 128)
 
 	atomicPlayedNotes := &atomic.Value{}
-	atomicPlayedNotes.Store(NotesPlayed{Notes: make([]MidiNote, 0, 10)}) //careful we only allocate 10, so we might only be able to play 10notes at the time
+	notes := make([]MidiNote, 0, 10) //careful we only allocate 10, so we might only be able to play 10notes at the time
+	atomicPlayedNotes.Store(notes)
 	atomicWaveform := &atomic.Value{}
 	atomicWaveform.Store(Sine)
 	atomicMaxAmp := &atomic.Value{}
@@ -89,20 +87,20 @@ func NewWaveProcessor() *WaveProcessor {
 		velocityToAmp:      velocityToAmp,
 		noteToAttack:       noteToAttack,
 		noteToRelease:      noteToRelease,
-		attackCount:        4410, // 10ms de fade-in
 	}
 }
 
 // ProcessAudio fills the out buffer with audio samples
 func (w *WaveProcessor) ProcessAudio(out []float32) {
-	notesPlayed := w.AtomicPlayedNotes.Load().(NotesPlayed)
+	notesPlayed := w.AtomicPlayedNotes.Load().([]MidiNote)
 	waveform := w.AtomicWaveform.Load().(Waveform)
 	maxAmp := w.atomicMaxAmp.Load().(float64)
 	releaseCount := w.atomicReleaseCount.Load()
+	attackCount := w.atomicAttackCount.Load()
 
 	for i := range out {
 		o := float32(0.0)
-		for _, midiNote := range notesPlayed.Notes {
+		for _, midiNote := range notesPlayed {
 			if !midiNote.On && w.noteToRelease[midiNote.Note] == 0 {
 				//TODO: remove note when note off after release completed
 				continue
@@ -118,8 +116,8 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 			phase := w.noteToPhase[midiNote.Note]
 			amp := w.velocityToAmp[midiNote.Velocity] * maxAmp
 
-			if midiNote.On && w.noteToAttack[midiNote.Note] < w.attackCount {
-				amp = amp * (float64(w.noteToAttack[midiNote.Note]) / float64(w.attackCount))
+			if midiNote.On && w.noteToAttack[midiNote.Note] < attackCount {
+				amp = amp * (float64(w.noteToAttack[midiNote.Note]) / float64(attackCount))
 				w.noteToAttack[midiNote.Note]++
 			}
 
