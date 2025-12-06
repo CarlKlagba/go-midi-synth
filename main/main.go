@@ -29,6 +29,7 @@ func (p *progFlags) flag(progArg []string) {
 func main() {
 	args := os.Args[1:]
 	flags.flag(args)
+	flags.noNotesDisplay = true // we for it at true until with fix the perf issues
 
 	wp := audio.NewWaveProcessor()
 	stream, err := audio.StreamAudio(wp)
