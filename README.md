@@ -36,7 +36,7 @@ This a live midi synthesizer in go.
   - [ ] Midi input selection
   - [ ] Visualize the waveform
   - [X] Volume control
-  - [ ] Attack time control
+  - [X] Attack time control
   - [X] Release time control
   - [ ] Reverb amount control
   - [X] Print playing notes
