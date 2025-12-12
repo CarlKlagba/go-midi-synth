@@ -95,8 +95,10 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesCha
 		}
 
 		if notesChan != nil {
-			midiNotes := atomicMidiNotes.Load()
-			on := notesOn(*midiNotes)
+			notesTemp := *atomicMidiNotes.Load()
+			copyNotes := make([]MidiNote, len(notesTemp))
+			copy(copyNotes, notesTemp)
+			on := notesOn(copyNotes)
 			go func() {
 				slices.Sort(on)
 				//fmt.Println("send to chan: ", on)
