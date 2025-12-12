@@ -109,24 +109,30 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Value, notesChan chan<- []uin
 }
 
 func turnOnNote(note byte, velocity byte, playedNotes []MidiNote) []MidiNote {
-	for i, n := range playedNotes {
+	newNotes := make([]MidiNote, len(playedNotes))
+	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+
+	for i, n := range newNotes {
 		if n.Note == note {
-			playedNotes[i].Velocity = velocity
-			playedNotes[i].On = true
-			return playedNotes
+			newNotes[i].Velocity = velocity
+			newNotes[i].On = true
+			return newNotes
 		}
 	}
-	return append(playedNotes, MidiNote{note, velocity, true})
+	return append(newNotes, MidiNote{Note: note, Velocity: velocity, On: true})
 }
 
 func turnOffNote(note byte, playedNotes []MidiNote) []MidiNote {
-	for i, n := range playedNotes {
+	newNotes := make([]MidiNote, len(playedNotes))
+	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+
+	for i, n := range newNotes {
 		if n.Note == note {
-			playedNotes[i].On = false
+			newNotes[i].On = false
 			break
 		}
 	}
-	return playedNotes
+	return newNotes
 }
 
 func notesOn(midiNotes []MidiNote) []uint8 {
