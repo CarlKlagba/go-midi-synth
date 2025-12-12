@@ -72,7 +72,7 @@ func CloseMidiReader() {
 	must(midiIn.Close())
 }
 
-func listenToMidiMessage(atomicPlayedNotes *atomic.Value, notesChan chan<- []uint8) func(pos *reader.Position, msg midi.Message) {
+func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesChan chan<- []uint8) func(pos *reader.Position, msg midi.Message) {
 	return func(pos *reader.Position, msg midi.Message) {
 		midiBytes := msg.Raw()
 		if len(midiBytes) < 3 {
@@ -86,11 +86,11 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Value, notesChan chan<- []uin
 		midiNotes := atomicMidiNotes.Load()
 		if channel == midiNoteOn && velocity > 0 {
 			playedNotes := turnOnNote(note, velocity, *midiNotes)
-			atomicPlayedNotes.Store(playedNotes)
+			atomicPlayedNotes.Store(&playedNotes)
 			atomicMidiNotes.Store(&playedNotes)
 		} else if (channel == midiNoteOff) || (channel == midiNoteOn && velocity == 0) {
 			playedNotes := turnOffNote(note, *midiNotes)
-			atomicPlayedNotes.Store(playedNotes)
+			atomicPlayedNotes.Store(&playedNotes)
 			atomicMidiNotes.Store(&playedNotes)
 		}
 

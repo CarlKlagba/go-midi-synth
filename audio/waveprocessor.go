@@ -24,7 +24,7 @@ const (
 )
 
 type WaveProcessor struct {
-	AtomicPlayedNotes  *atomic.Value
+	AtomicPlayedNotes  *atomic.Pointer[[]MidiNote]
 	AtomicWaveform     *atomic.Value
 	atomicMaxAmp       *atomic.Value
 	atomicReleaseCount *atomic.Uint32
@@ -43,9 +43,10 @@ func NewWaveProcessor() *WaveProcessor {
 	noteToAttack := make(map[uint8]uint32, 128)
 	noteToRelease := make(map[uint8]uint32, 128)
 
-	atomicPlayedNotes := &atomic.Value{}
 	notes := make([]MidiNote, 0, 10) //careful we only allocate 10, so we might only be able to play 10notes at the time
-	atomicPlayedNotes.Store(notes)
+	var atomicPlayedNotes atomic.Pointer[[]MidiNote]
+	atomicPlayedNotes.Store(&notes)
+
 	atomicWaveform := &atomic.Value{}
 	atomicWaveform.Store(Sine)
 	atomicMaxAmp := &atomic.Value{}
@@ -77,7 +78,7 @@ func NewWaveProcessor() *WaveProcessor {
 	}
 
 	return &WaveProcessor{
-		AtomicPlayedNotes:  atomicPlayedNotes,
+		AtomicPlayedNotes:  &atomicPlayedNotes,
 		AtomicWaveform:     atomicWaveform,
 		atomicMaxAmp:       atomicMaxAmp,
 		atomicReleaseCount: atomicReleaseCount,
@@ -92,7 +93,7 @@ func NewWaveProcessor() *WaveProcessor {
 
 // ProcessAudio fills the out buffer with audio samples
 func (w *WaveProcessor) ProcessAudio(out []float32) {
-	notesPlayed := w.AtomicPlayedNotes.Load().([]MidiNote)
+	notesPlayed := *w.AtomicPlayedNotes.Load() // TODO see how confortable we are about the pointer
 	waveform := w.AtomicWaveform.Load().(Waveform)
 	maxAmp := w.atomicMaxAmp.Load().(float64)
 	releaseCount := w.atomicReleaseCount.Load()
