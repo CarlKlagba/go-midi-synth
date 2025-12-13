@@ -21,12 +21,12 @@ This a live midi synthesizer in go.
 - [X] Use the midi velocity
 - [ ] Reverb effect
 - [ ] ADSR envelope
-  - [ ] Attack
+  - [X] Attack
     - [X] implement attack
-    - [ ] make it parametric
+    - [X] make it parametric
   - [ ] Decay
   - [ ] Sustain
-  - [ ] Release
+  - [X] Release
     - [X] implement release
     - [X] make it parametric
 - [ ] Stereo output
