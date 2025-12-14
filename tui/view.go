@@ -52,7 +52,7 @@ func (m model) View() string {
 	adsrSection := lipgloss.JoinHorizontal(lipgloss.Top, attack, "     ", release)
 
 	full.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, waves.String(), "       ", adsrSection))
-	full.WriteString("\n" + m.volumeProgress.ViewAs(m.volume) + "\n")
+	full.WriteString("\n-" + m.volumeProgress.ViewAs(m.volume) + "+\n")
 	full.WriteString(faintStyle.Render("\nPress space to select, q to quit.\n"))
 
 	return full.String()
