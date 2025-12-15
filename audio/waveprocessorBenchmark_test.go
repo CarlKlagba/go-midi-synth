@@ -14,7 +14,7 @@ func Benchmark_ProcessAudio_Sine(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Sine)
 	note := MidiNote{Note: 60, Velocity: 100, On: true}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -28,7 +28,7 @@ func Benchmark_ProcessAudio_Square(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Square)
 	note := MidiNote{Note: 60, Velocity: 100, On: true}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -42,7 +42,7 @@ func Benchmark_ProcessAudio_Triangle(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Triangle)
 	note := MidiNote{Note: 60, Velocity: 100, On: true}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -56,7 +56,7 @@ func Benchmark_ProcessAudio_Sawtooth(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Sawtooth)
 	note := MidiNote{Note: 60, Velocity: 100, On: true}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -70,7 +70,7 @@ func Benchmark_ProcessAudio_Sine_Note_Off(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Sine)
 	note := MidiNote{Note: 60, Velocity: 100, On: false}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -84,7 +84,7 @@ func Benchmark_ProcessAudio_Mutate_Shared_Data(b *testing.B) {
 	wp := NewWaveProcessor()
 	wp.AtomicWaveform.Store(Sine)
 	note := MidiNote{Note: 60, Velocity: 100, On: false}
-	wp.AtomicPlayedNotes.Store(NotesPlayed{Notes: []MidiNote{note}})
+	wp.AtomicPlayedNotes.Store(note)
 
 	out := make([]float32, 256)
 
@@ -96,11 +96,7 @@ func Benchmark_ProcessAudio_Mutate_Shared_Data(b *testing.B) {
 			n := uint8(127 % i)
 			notes = addNote(n, 100, notes)
 			notes = offNote(n-1, notes)
-			wp.AtomicPlayedNotes.Store(
-				NotesPlayed{
-					Notes: notes,
-				},
-			)
+			wp.AtomicPlayedNotes.Store(notes)
 		}
 	}()
 

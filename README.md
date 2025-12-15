@@ -21,25 +21,26 @@ This a live midi synthesizer in go.
 - [X] Use the midi velocity
 - [ ] Reverb effect
 - [ ] ADSR envelope
-  - [ ] Attack
+  - [X] Attack
     - [X] implement attack
-    - [ ] make it parametric
+    - [X] make it parametric
   - [ ] Decay
   - [ ] Sustain
-  - [ ] Release
+  - [X] Release
     - [X] implement release
-    - [ ] make it parametric
+    - [X] make it parametric
 - [ ] Stereo output
 - [ ] EQ ?
 - [ ] CLI GUI:
   - [X] Oscillator type selection
   - [ ] Midi input selection
   - [ ] Visualize the waveform
-  - [ ] Volume control
-  - [ ] Attack time control
-  - [ ] Release time control
+  - [X] Volume control
+  - [X] Attack time control
+  - [X] Release time control
   - [ ] Reverb amount control
-  - [ ] Print playing notes
+  - [X] Print playing notes
+  - [ ] Check how to see loggs when using GUI
 - [ ] Refactoring:
   - [ ] Error handling
   - [ ] make a debug system with logging

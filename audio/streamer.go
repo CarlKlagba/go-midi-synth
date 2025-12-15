@@ -6,7 +6,10 @@ import (
 )
 
 func StreamAudio(wp *WaveProcessor) (*portaudio.Stream, error) {
-	must(portaudio.Initialize())
+	err := portaudio.Initialize()
+	if err != nil {
+		return nil, err
+	}
 	stream, err := portaudio.OpenDefaultStream(
 		0,
 		1,

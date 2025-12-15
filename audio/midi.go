@@ -1,12 +1,14 @@
 package audio
 
 import (
-	"fmt"
+	"errors"
+	"log"
+	"slices"
+	"sync/atomic"
+
 	"gitlab.com/gomidi/midi"
 	"gitlab.com/gomidi/midi/reader"
 	"gitlab.com/gomidi/rtmididrv"
-	"log"
-	"sync/atomic"
 )
 
 type MidiNote struct {
@@ -18,12 +20,12 @@ type MidiNote struct {
 const midiNoteOn byte = 0x90
 const midiNoteOff byte = 0x80
 
-var playedNotes []MidiNote
+var atomicMidiNotes atomic.Pointer[[]MidiNote]
 
 var driverInstance *rtmididrv.Driver
 var midiIn midi.In
 
-func StartReadingMidiMessages(wp *WaveProcessor) error {
+func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) error {
 	var err error
 	driverInstance, err = rtmididrv.New()
 
@@ -38,7 +40,7 @@ func StartReadingMidiMessages(wp *WaveProcessor) error {
 	}
 
 	if len(ins) == 0 {
-		log.Fatal("No MIDI input devices found")
+		return errors.New("no midi input device found")
 	}
 
 	midiIn = ins[0]
@@ -48,8 +50,11 @@ func StartReadingMidiMessages(wp *WaveProcessor) error {
 
 	rd := reader.New(
 		reader.NoLogger(),
-		reader.Each(listenToMidiMessage(&wp.AtomicPlayedNotes)),
+		reader.Each(listenToMidiMessage(wp.AtomicPlayedNotes, notesSender)),
 	)
+
+	var playedNotes []MidiNote
+	atomicMidiNotes.Store(&playedNotes)
 
 	log.Println("Listening to MIDI messages...")
 	err = rd.ListenTo(midiIn)
@@ -62,52 +67,84 @@ func StartReadingMidiMessages(wp *WaveProcessor) error {
 }
 
 func CloseMidiReader() {
+	log.Println("Closing Midi Reader...")
 	must(driverInstance.Close())
 	must(midiIn.Close())
 }
 
-func listenToMidiMessage(atomicPlayedNotes *atomic.Value) func(pos *reader.Position, msg midi.Message) {
+func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesChan chan<- []uint8) func(pos *reader.Position, msg midi.Message) {
 	return func(pos *reader.Position, msg midi.Message) {
 		midiBytes := msg.Raw()
 		if len(midiBytes) < 3 {
 			return
 		}
-		canal := midiBytes[0] & 0xF0
+		channel := midiBytes[0] & 0xF0
 		note := midiBytes[1]
 		velocity := midiBytes[2]
-		fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", canal, note, velocity)
+		//fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", channel, note, velocity)
 
-		if canal == midiNoteOn && velocity > 0 {
-			playedNotes = turnOnNote(note, velocity, playedNotes)
-			n := NotesPlayed{Notes: playedNotes}
-			atomicPlayedNotes.Store(n)
-		} else if (canal == midiNoteOff) || (canal == midiNoteOn && velocity == 0) {
-			playedNotes = turnOffNote(note, playedNotes)
-			n := NotesPlayed{Notes: playedNotes}
-			atomicPlayedNotes.Store(n)
+		midiNotes := atomicMidiNotes.Load()
+		if channel == midiNoteOn && velocity > 0 {
+			playedNotes := turnOnNote(note, velocity, *midiNotes)
+			atomicPlayedNotes.Store(&playedNotes)
+			atomicMidiNotes.Store(&playedNotes)
+		} else if (channel == midiNoteOff) || (channel == midiNoteOn && velocity == 0) {
+			playedNotes := turnOffNote(note, *midiNotes)
+			atomicPlayedNotes.Store(&playedNotes)
+			atomicMidiNotes.Store(&playedNotes)
+		}
+
+		if notesChan != nil {
+			notesTemp := *atomicMidiNotes.Load()
+			copyNotes := make([]MidiNote, len(notesTemp))
+			copy(copyNotes, notesTemp)
+			on := notesOn(copyNotes)
+			go func() {
+				slices.Sort(on)
+				//fmt.Println("send to chan: ", on)
+				notesChan <- on
+				//Seem blocking, check if stop blocking with reading
+				//fmt.Println("stop blocking ")
+			}()
 		}
 	}
 }
 
 func turnOnNote(note byte, velocity byte, playedNotes []MidiNote) []MidiNote {
-	for i, n := range playedNotes {
+	newNotes := make([]MidiNote, len(playedNotes))
+	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+
+	for i, n := range newNotes {
 		if n.Note == note {
-			playedNotes[i].Velocity = velocity
-			playedNotes[i].On = true
-			return playedNotes
+			newNotes[i].Velocity = velocity
+			newNotes[i].On = true
+			return newNotes
 		}
 	}
-	return append(playedNotes, MidiNote{note, velocity, true})
+	return append(newNotes, MidiNote{Note: note, Velocity: velocity, On: true})
 }
 
 func turnOffNote(note byte, playedNotes []MidiNote) []MidiNote {
-	for i, n := range playedNotes {
+	newNotes := make([]MidiNote, len(playedNotes))
+	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+
+	for i, n := range newNotes {
 		if n.Note == note {
-			playedNotes[i].On = false
+			newNotes[i].On = false
 			break
 		}
 	}
-	return playedNotes
+	return newNotes
+}
+
+func notesOn(midiNotes []MidiNote) []uint8 {
+	var nOn []uint8
+	for _, n := range midiNotes {
+		if n.On {
+			nOn = append(nOn, n.Note)
+		}
+	}
+	return nOn
 }
 
 func must(err error) {

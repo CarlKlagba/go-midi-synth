@@ -1,60 +1,58 @@
 package main
 
 import (
-	"github.com/CarlKlagba/go-midi-synth/audio"
-	"github.com/CarlKlagba/go-midi-synth/keyreader"
 	"log"
 	"os"
-	"time"
+
+	"github.com/CarlKlagba/go-midi-synth/audio"
+	"github.com/CarlKlagba/go-midi-synth/tui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-var (
-	noMidi = false
-)
-
-func main() {
-
-	for _, arg := range os.Args[1:] {
-		if arg == "--no-midi" {
-			noMidi = true
-			break
-		}
-	}
-
-	if noMidi {
-		wp := audio.NewWaveProcessor()
-
-		stream, err := audio.StreamAudio(wp)
-		must(err)
-		defer audio.CloseAudioStream(stream)
-
-		note := audio.MidiNote{Note: 69, Velocity: 80, On: true}
-		notes := audio.NotesPlayed{Notes: []audio.MidiNote{note}}
-		wp.AtomicPlayedNotes.Store(notes)
-
-		keyreader.Controls(&wp.AtomicWaveform)
-
-		time.Sleep(50 * time.Minute)
-		return
-	}
-
-	wp := audio.NewWaveProcessor()
-
-	stream, err := audio.StreamAudio(wp)
-	must(err)
-	defer audio.CloseAudioStream(stream)
-
-	err = audio.StartReadingMidiMessages(wp)
-	must(err)
-	defer audio.CloseMidiReader()
-
-	keyreader.Controls(&wp.AtomicWaveform)
-
-	select {}
+type progFlags struct {
+	noNotesDisplay bool
 }
 
-func must(err error) {
+var flags = progFlags{
+	noNotesDisplay: false,
+}
+
+func (p *progFlags) flag(progArg []string) {
+	for _, a := range progArg {
+		if a == "--no-note-display" || a == "-nd" {
+			p.noNotesDisplay = true
+			log.Println("No Notes Display")
+		}
+	}
+}
+
+func main() {
+	args := os.Args[1:]
+	flags.flag(args)
+	flags.noNotesDisplay = true // we for it at true until with fix the perf issues
+
+	wp := audio.NewWaveProcessor()
+	stream, err := audio.StreamAudio(wp)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to start audio stream: %v", err)
+	}
+	defer audio.CloseAudioStream(stream)
+
+	var midiNotesChan chan []uint8 = nil
+	if !flags.noNotesDisplay {
+		//Putting the buffer size to 100 seems to fix the issue with clipping but need to look further into it
+		midiNotesChan = make(chan []uint8, 100)
+		defer close(midiNotesChan)
+	}
+
+	err = audio.StartReadingMidiMessages(wp, midiNotesChan)
+	if err != nil {
+		log.Fatalf("Failed to start midi reading: %v", err)
+	}
+	defer audio.CloseMidiReader()
+
+	p := tea.NewProgram(tui.InitialModel(wp, midiNotesChan))
+	if _, err := p.Run(); err != nil {
+		log.Fatalf("Error starting the TUI: %v", err)
 	}
 }
