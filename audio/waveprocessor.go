@@ -235,7 +235,12 @@ func (w *WaveProcessor) GetAttackTime() float64 {
 	return float64(r) / 440.0
 }
 
-func (w *WaveProcessor) SetDelayTime(millitsec float64) {
+func (w *WaveProcessor) GetDecayTime() float64 {
+	r := w.atomicDecayCount.Load()
+	return float64(r) / 440.0
+}
+
+func (w *WaveProcessor) SetDecayTime(millitsec float64) {
 	if millitsec < 5.0 {
 		millitsec = 5.0
 	}
@@ -259,11 +264,6 @@ func (w *WaveProcessor) SetSustain(sustain float64) {
 		sustain = 1.0
 	}
 	w.atomicSustain.Store(sustain)
-}
-
-func (w *WaveProcessor) GetDelayTime() float64 {
-	r := w.atomicDecayCount.Load()
-	return float64(r) / 440.0
 }
 
 func (w *WaveProcessor) SetReleaseTime(millitsec float64) {

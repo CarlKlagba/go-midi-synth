@@ -5,8 +5,10 @@ import tea "github.com/charmbracelet/bubbletea"
 type playNotesMsg []uint8
 type waveformSelectedMsg int
 type volumeSetAtMsg float64
-type releaseTimeSetAtMsg float64
 type attackTimeSetAtMsg float64
+type decayTimeSetAtMsg float64
+type sustainSetAtMsg float64
+type releaseTimeSetAtMsg float64
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -14,11 +16,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case volumeSetAtMsg:
 		m.volume = float64(msg)
 
+	case attackTimeSetAtMsg:
+		m.attackTime = float64(msg)
+
 	case releaseTimeSetAtMsg:
 		m.releaseTime = float64(msg)
 
-	case attackTimeSetAtMsg:
-		m.attackTime = float64(msg)
+	case decayTimeSetAtMsg:
+		m.decayTime = float64(msg)
+
+	case sustainSetAtMsg:
+		m.sustain = float64(msg)
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
@@ -48,15 +56,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "-", "left":
 			return m, volumeDownCmd(&m)
 
-		case "r":
-			return m, releaseDownCmd(&m)
-		case "R":
-			return m, releaseUpCmd(&m)
-
 		case "a":
 			return m, attackDownCmd(&m)
 		case "A":
 			return m, attackUpCmd(&m)
+
+		case "d":
+			return m, decayDownCmd(&m)
+		case "D":
+			return m, decayUpCmd(&m)
+
+		case "s":
+			return m, sustainDownCmd(&m)
+		case "S":
+			return m, sustainUpCmd(&m)
+
+		case "r":
+			return m, releaseDownCmd(&m)
+		case "R":
+			return m, releaseUpCmd(&m)
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -123,5 +141,33 @@ func attackDownCmd(m *model) tea.Cmd {
 	m.waveProcessor.SetAttackTime(m.attackTime - 5.0)
 	return func() tea.Msg {
 		return attackTimeSetAtMsg(m.waveProcessor.GetAttackTime())
+	}
+}
+
+func decayUpCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetDecayTime(m.decayTime + 5.0)
+	return func() tea.Msg {
+		return decayTimeSetAtMsg(m.waveProcessor.GetDecayTime())
+	}
+}
+
+func decayDownCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetDecayTime(m.decayTime - 5.0)
+	return func() tea.Msg {
+		return decayTimeSetAtMsg(m.waveProcessor.GetDecayTime())
+	}
+}
+
+func sustainUpCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetSustain(m.sustain + 0.01)
+	return func() tea.Msg {
+		return sustainSetAtMsg(m.waveProcessor.GetSustain())
+	}
+}
+
+func sustainDownCmd(m *model) tea.Cmd {
+	m.waveProcessor.SetSustain(m.sustain - 0.01)
+	return func() tea.Msg {
+		return sustainSetAtMsg(m.waveProcessor.GetSustain())
 	}
 }

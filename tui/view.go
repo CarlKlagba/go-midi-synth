@@ -44,12 +44,20 @@ func (m model) View() string {
 		boldTextStyle.Render("Attack"),
 		boldTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.attackTime, 'f', 1, 32))),
 		faintStyle.Render("a - A"))
+	decay := lipgloss.JoinVertical(lipgloss.Top,
+		boldTextStyle.Render("Decay"),
+		boldTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.decayTime, 'f', 1, 32))),
+		faintStyle.Render("d - D"))
+	sustain := lipgloss.JoinVertical(lipgloss.Top,
+		boldTextStyle.Render("Sustain"),
+		boldTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(m.sustain, 'f', 1, 32))),
+		faintStyle.Render("s - S"))
 	release := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Release"),
 		basicTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.releaseTime, 'f', 1, 32))),
 		faintStyle.Render("r - R"))
 
-	adsrSection := lipgloss.JoinHorizontal(lipgloss.Top, attack, "     ", release)
+	adsrSection := lipgloss.JoinHorizontal(lipgloss.Top, attack, "     ", decay, "     ", sustain, "     ", release)
 
 	full.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, waves.String(), "       ", adsrSection))
 	full.WriteString("\n-" + m.volumeProgress.ViewAs(m.volume) + "+\n")

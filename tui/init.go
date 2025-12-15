@@ -15,8 +15,10 @@ type model struct {
 	volume         float64
 	volumeProgress progress.Model
 	waveProcessor  *audio.WaveProcessor
-	releaseTime    float64
 	attackTime     float64
+	decayTime      float64
+	sustain        float64
+	releaseTime    float64
 }
 
 func InitialModel(wp *audio.WaveProcessor, notesReceiver <-chan []uint8) tea.Model {
@@ -29,8 +31,10 @@ func InitialModel(wp *audio.WaveProcessor, notesReceiver <-chan []uint8) tea.Mod
 		volume:         wp.GetVolume(),
 		volumeProgress: progress.New(progress.WithScaledGradient("#0d2f02", "#2ca506")),
 		waveProcessor:  wp,
-		releaseTime:    wp.GetReleaseTime(),
 		attackTime:     wp.GetAttackTime(),
+		decayTime:      wp.GetDecayTime(),
+		sustain:        wp.GetSustain(),
+		releaseTime:    wp.GetReleaseTime(),
 	}
 }
 
