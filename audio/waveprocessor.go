@@ -49,7 +49,7 @@ func NewWaveProcessor() *WaveProcessor {
 	noteToDecay := make(map[uint8]uint32, 128)
 	noteToRelease := make(map[uint8]uint32, 128)
 
-	notes := make([]MidiNote, 0, 10) //careful we only allocate 10, so we might only be able to play 10notes at the time
+	notes := make([]MidiNote, 0, 10) //careful we only allocate 10, so we might only be able to play 10 notes at the time
 	var atomicPlayedNotes atomic.Pointer[[]MidiNote]
 	atomicPlayedNotes.Store(&notes)
 
@@ -108,9 +108,8 @@ func NewWaveProcessor() *WaveProcessor {
 	}
 }
 
-// ProcessAudio fills the out buffer with audio samples
 func (w *WaveProcessor) ProcessAudio(out []float32) {
-	notesPlayed := *w.AtomicPlayedNotes.Load() // TODO see how confortable we are about the pointer
+	notesPlayed := *w.AtomicPlayedNotes.Load() // TODO see how comfortable we are about the pointer
 	waveform := w.AtomicWaveform.Load().(Waveform)
 	maxAmp := w.atomicMaxAmp.Load().(float64)
 	attackCount := w.atomicAttackCount.Load()
@@ -122,7 +121,7 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 		o := float32(0.0)
 		for _, midiNote := range notesPlayed {
 			if !midiNote.On && w.noteToRelease[midiNote.Note] == 0 {
-				//TODO: remove note when note off after release completed
+				//Do not remove note when off and release over to avoid race conditions with midiReader. Keep all atomic read only
 				continue
 			}
 			if midiNote.On && w.noteToRelease[midiNote.Note] != releaseCount {
@@ -177,6 +176,33 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 		}
 		out[i] = o
 	}
+}
+
+func sinWave(phase float64) float64 {
+	return math.Sin(2 * math.Pi * phase)
+}
+
+func sqrWave(phase float64) float64 {
+	return math.Copysign(1, math.Sin(2*math.Pi*phase))
+}
+
+func triWave(phase float64) float64 {
+	return 4*math.Abs(phase-0.5) - 1
+}
+
+func sawWave(phase float64) float64 {
+	return phase - 0.5
+}
+
+func midiVelocityToAmplitude(velocity uint8) float64 {
+	return float64(velocity) / float64(maxVelocity)
+}
+
+func midiNoteToFreq(note uint8) float64 {
+	const a4Freq = 440.0
+	const a4MidiNote = 69.0
+	const numberOfNotes = 12.0
+	return a4Freq * math.Pow(2, (float64(note)-a4MidiNote)/numberOfNotes)
 }
 
 func (w *WaveProcessor) SetVolume(volume float64) {
@@ -254,31 +280,4 @@ func (w *WaveProcessor) SetReleaseTime(millitsec float64) {
 func (w *WaveProcessor) GetReleaseTime() float64 {
 	r := w.atomicReleaseCount.Load()
 	return float64(r) / 440.0
-}
-
-func sinWave(phase float64) float64 {
-	return math.Sin(2 * math.Pi * phase)
-}
-
-func sqrWave(phase float64) float64 {
-	return math.Copysign(1, math.Sin(2*math.Pi*phase))
-}
-
-func triWave(phase float64) float64 {
-	return 4*math.Abs(phase-0.5) - 1
-}
-
-func sawWave(phase float64) float64 {
-	return phase - 0.5
-}
-
-func midiVelocityToAmplitude(velocity uint8) float64 {
-	return float64(velocity) / float64(maxVelocity)
-}
-
-func midiNoteToFreq(note uint8) float64 {
-	const a4Freq = 440.0
-	const a4MidiNote = 69.0
-	const numberOfNotes = 12.0
-	return a4Freq * math.Pow(2, (float64(note)-a4MidiNote)/numberOfNotes)
 }
