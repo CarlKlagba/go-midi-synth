@@ -154,7 +154,7 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 			}
 
 			if !midiNote.On && w.noteToRelease[midiNote.Note] > 0 {
-				amp = amp * (float64(w.noteToRelease[midiNote.Note]) / float64(releaseCount))
+				amp = amp * sustain * (float64(w.noteToRelease[midiNote.Note]) / float64(releaseCount))
 				w.noteToRelease[midiNote.Note]--
 			}
 
