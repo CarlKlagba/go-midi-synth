@@ -11,10 +11,12 @@ import (
 
 type progFlags struct {
 	noNotesDisplay bool
+	noMidi         bool
 }
 
 var flags = progFlags{
 	noNotesDisplay: false,
+	noMidi:         false,
 }
 
 func (p *progFlags) flag(progArg []string) {
@@ -22,6 +24,10 @@ func (p *progFlags) flag(progArg []string) {
 		if a == "--no-note-display" || a == "-nd" {
 			p.noNotesDisplay = true
 			log.Println("No Notes Display")
+		}
+		if a == "--no-midi" || a == "-nm" {
+			p.noMidi = true
+			log.Println("No Midi")
 		}
 	}
 }
@@ -45,11 +51,13 @@ func main() {
 		defer close(midiNotesChan)
 	}
 
-	err = audio.StartReadingMidiMessages(wp, midiNotesChan)
-	if err != nil {
-		log.Fatalf("Failed to start midi reading: %v", err)
+	if !flags.noMidi {
+		err = audio.StartReadingMidiMessages(wp, midiNotesChan)
+		if err != nil {
+			log.Fatalf("Failed to start midi reading: %v", err)
+		}
+		defer audio.CloseMidiReader()
 	}
-	defer audio.CloseMidiReader()
 
 	p := tea.NewProgram(tui.InitialModel(wp, midiNotesChan))
 	if _, err := p.Run(); err != nil {
