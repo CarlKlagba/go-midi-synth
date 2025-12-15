@@ -201,13 +201,13 @@ func (w *WaveProcessor) SetAttackTime(millitsec float64) {
 	if millitsec > 100.0 {
 		millitsec = 100.0
 	}
-	val := uint32(millitsec * 441)
+	val := uint32(millitsec * 440)
 	w.atomicAttackCount.Store(val)
 }
 
 func (w *WaveProcessor) GetAttackTime() float64 {
 	r := w.atomicAttackCount.Load()
-	return float64(r) / 441.0
+	return float64(r) / 440.0
 }
 
 func (w *WaveProcessor) SetReleaseTime(millitsec float64) {
@@ -217,14 +217,13 @@ func (w *WaveProcessor) SetReleaseTime(millitsec float64) {
 	if millitsec > 100.0 {
 		millitsec = 100.0
 	}
-	// 441 == 1ms ??
-	val := uint32(millitsec * 441)
+	val := uint32(millitsec * 440)
 	w.atomicReleaseCount.Store(val)
 }
 
 func (w *WaveProcessor) GetReleaseTime() float64 {
 	r := w.atomicReleaseCount.Load()
-	return float64(r) / 441.0
+	return float64(r) / 440.0
 }
 
 func sinWave(phase float64) float64 {
