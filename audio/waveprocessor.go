@@ -187,7 +187,6 @@ func (w *WaveProcessor) SetVolume(volume float64) {
 		volume = 1.0
 	}
 	w.atomicMaxAmp.Store(volume)
-
 }
 
 func (w *WaveProcessor) GetVolume() float64 {
@@ -226,15 +225,14 @@ func (w *WaveProcessor) GetSustain() float64 {
 	return float64(r) / 440.0
 }
 
-func (w *WaveProcessor) SetSustain(millitsec float64) {
-	if millitsec < 5.0 {
-		millitsec = 5.0
+func (w *WaveProcessor) SetSustain(sustain float64) {
+	if sustain < 0.0 {
+		sustain = 0.0
 	}
-	if millitsec > 100.0 {
-		millitsec = 100.0
+	if sustain > 1.0 {
+		sustain = 1.0
 	}
-	val := uint32(millitsec * 440)
-	w.atomicSustain.Store(val)
+	w.atomicSustain.Store(sustain)
 }
 
 func (w *WaveProcessor) GetDelayTime() float64 {
