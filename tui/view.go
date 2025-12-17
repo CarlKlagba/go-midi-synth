@@ -42,7 +42,7 @@ func (m model) View() string {
 
 	attack := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Attack"),
-		boldTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.attackTime, 'f', 1, 32))),
+		basicTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.attackTime, 'f', 1, 32))),
 		faintStyle.Render("a - A"))
 	decay := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Decay"),
