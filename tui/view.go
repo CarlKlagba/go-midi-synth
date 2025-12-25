@@ -46,11 +46,11 @@ func (m model) View() string {
 		faintStyle.Render("a - A"))
 	decay := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Decay"),
-		boldTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.decayTime, 'f', 1, 32))),
+		basicTextStyle.Render(fmt.Sprintf("%sms", strconv.FormatFloat(m.decayTime, 'f', 1, 32))),
 		faintStyle.Render("d - D"))
 	sustain := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Sustain"),
-		boldTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(m.sustain, 'f', 1, 32))),
+		basicTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(m.sustain, 'f', 1, 32))),
 		faintStyle.Render("s - S"))
 	release := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Release"),
