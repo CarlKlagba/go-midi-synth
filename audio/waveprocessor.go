@@ -109,7 +109,15 @@ func NewWaveProcessor() *WaveProcessor {
 }
 
 func (w *WaveProcessor) ProcessAudio(out []float32) {
-	notesPlayed := *w.AtomicPlayedNotes.Load() // TODO see how comfortable we are about the pointer
+	w.processAudio(out, nil)
+}
+
+func (w *WaveProcessor) ProcessAudioTrackAmplitude(out []float32, ampOut []float64) {
+	w.processAudio(out, ampOut)
+}
+
+func (w *WaveProcessor) processAudio(out []float32, ampOut []float64) {
+	notesPlayed := *w.AtomicPlayedNotes.Load() //TODO see how comfortable we are about the pointer
 	waveform := w.AtomicWaveform.Load().(Waveform)
 	maxAmp := w.atomicMaxAmp.Load().(float64)
 	attackCount := w.atomicAttackCount.Load()
@@ -173,6 +181,10 @@ func (w *WaveProcessor) ProcessAudio(out []float32) {
 
 			step := freq / sampleRate
 			_, w.noteToPhase[midiNote.Note] = math.Modf(phase + step)
+
+			if ampOut != nil { //should be a matrix but lets just handle one note for now
+				ampOut[i] = amp
+			}
 		}
 		out[i] = o
 	}
