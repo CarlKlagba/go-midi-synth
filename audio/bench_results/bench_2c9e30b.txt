@@ -1,4 +1,0 @@
-# github.com/CarlKlagba/go-midi-synth/audio [github.com/CarlKlagba/go-midi-synth/audio.test]
-audio/waveprocessor_test.go:70:38: cannot use ampOut (variable of type []float64) as []float32 value in argument to wp.ProcessAudioTrackAmplitude
-FAIL	github.com/CarlKlagba/go-midi-synth/audio [build failed]
-FAIL
