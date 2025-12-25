@@ -132,10 +132,10 @@ func (w *WaveProcessor) processAudio(out []float32, ampOut []float64) {
 				//Do not remove note when off and release over to avoid race conditions with midiReader. Keep all atomic read only
 				continue
 			}
-			if midiNote.On && w.noteToRelease[midiNote.Note] != releaseCount {
+			if midiNote.On && w.noteToRelease[midiNote.Note] != releaseCount { //Reinitialise the release when a note starts again
 				w.noteToRelease[midiNote.Note] = releaseCount
 			}
-			if !midiNote.On && w.noteToAttack[midiNote.Note] != 0 {
+			if !midiNote.On && w.noteToAttack[midiNote.Note] != 0 { //Reinitialise the attack when the note is off
 				w.noteToAttack[midiNote.Note] = 0
 			}
 			if !midiNote.On && w.noteToDecay[midiNote.Note] != decayCount {
@@ -146,14 +146,12 @@ func (w *WaveProcessor) processAudio(out []float32, ampOut []float64) {
 			phase := w.noteToPhase[midiNote.Note]
 			amp := w.velocityToAmp[midiNote.Velocity] * maxAmp
 
-			if midiNote.On && w.noteToAttack[midiNote.Note] < attackCount {
+			if midiNote.On && w.noteToAttack[midiNote.Note] < attackCount { // The Attack phase
 				amp = amp * (float64(w.noteToAttack[midiNote.Note]) / float64(attackCount))
 				w.noteToAttack[midiNote.Note]++
 			}
 
-			if midiNote.On &&
-				w.noteToAttack[midiNote.Note] >= attackCount && // The attack phase is done
-				w.noteToDecay[midiNote.Note] > 0 {
+			if midiNote.On && w.noteToAttack[midiNote.Note] >= attackCount { // The attack phase is done
 				decay := (1.0 - sustain) * float64(w.noteToDecay[midiNote.Note]) / float64(decayCount)
 				amp = amp * (decay + sustain)
 				if w.noteToDecay[midiNote.Note] > 0 {
@@ -161,7 +159,7 @@ func (w *WaveProcessor) processAudio(out []float32, ampOut []float64) {
 				}
 			}
 
-			if !midiNote.On && w.noteToRelease[midiNote.Note] > 0 {
+			if !midiNote.On && w.noteToRelease[midiNote.Note] > 0 { // The release phase starts
 				amp = amp * sustain * (float64(w.noteToRelease[midiNote.Note]) / float64(releaseCount))
 				w.noteToRelease[midiNote.Note]--
 			}
