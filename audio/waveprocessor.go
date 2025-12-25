@@ -42,6 +42,24 @@ type WaveProcessor struct {
 }
 
 func NewWaveProcessor() *WaveProcessor {
+	return NewWaveProcessorWith(
+		sampleRate,
+		initialAmplitude,
+		initialAttackCount,
+		initialDecayCount,
+		initialSustain,
+		initialReleaseCount,
+	)
+}
+
+func NewWaveProcessorWith(
+	sampleRate uint32,
+	initialAmplitude float64,
+	initialAttackCount uint32,
+	initialDecayCount uint32,
+	initialSustain float32,
+	initialReleaseCount uint32,
+) *WaveProcessor {
 	noteToFreq := make(map[uint8]float64, 128)
 	noteToPhase := make(map[uint8]float64, 128)
 	velocityToAmp := make(map[uint8]float64, 128)
