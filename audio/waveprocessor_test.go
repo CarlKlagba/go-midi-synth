@@ -42,7 +42,7 @@ func Test_ProcessAudio_With_a_Note(t *testing.T) {
 	wp.AtomicPlayedNotes.Store(&notes)
 
 	out := make([]float32, 256)    // Is this the right size?
-	ampOut := make([]float64, 256) // Is this the right size?
+	ampOut := make([]float32, 256) // Is this the right size?
 
 	if len(ampOut) == 0 {
 		fmt.Println("[]")

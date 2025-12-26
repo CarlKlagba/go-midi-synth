@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-COUNT=4             # number of runs to average (go test -count). Increase for more stable results.
+BENCHTIME=20             # number of runs to average (go test -count). Increase for more stable results.
 RESULT_DIR="audio/bench_results"
 
 if [ "$#" -ne 2 ]; then
@@ -85,7 +85,7 @@ run_bench_for_commit() {
     echo "Running benchmarks for ./audio (commit $short) -> $out"
     echo "(This runs: go test ./audio -bench . -benchmem -run '^$' -count $COUNT )"
     # Run bench; capture both stdout and stderr
-    if ! go test ./audio -bench . -benchmem -run '^$' -count "$COUNT" > "$out" 2>&1; then
+    if ! go test ./audio -bench . -benchmem -run '^$' -benchtime "$BENCHTIME" > "$out" 2>&1; then
         echo "ERROR: go test failed for commit $commit. See $out for details."
         # keep the checked-out state so the user can inspect, then exit
         exit 1
