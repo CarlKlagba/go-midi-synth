@@ -24,12 +24,13 @@ This a live midi synthesizer in go.
   - [X] Attack
     - [X] implement attack
     - [X] make it parametric
-  - [ ] Decay
-  - [ ] Sustain
+  - [X] Decay
+  - [X] Sustain
   - [X] Release
     - [X] implement release
     - [X] make it parametric
 - [ ] Stereo output
+  - [ ] Pan left/right
 - [ ] EQ ?
 - [ ] CLI GUI:
   - [X] Oscillator type selection
@@ -44,4 +45,3 @@ This a live midi synthesizer in go.
 - [ ] Refactoring:
   - [ ] Error handling
   - [ ] make a debug system with logging
-
