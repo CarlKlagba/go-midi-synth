@@ -1,0 +1,12 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/CarlKlagba/go-midi-synth/audio
+cpu: Apple M4 Pro
+Benchmark_ProcessAudio_Sine-14                  	 7291106	      3350 ns/op	       0 B/op	       0 allocs/op
+Benchmark_ProcessAudio_Square-14                	 6706758	      3578 ns/op	       0 B/op	       0 allocs/op
+Benchmark_ProcessAudio_Triangle-14              	 9032803	      2654 ns/op	       0 B/op	       0 allocs/op
+Benchmark_ProcessAudio_Sawtooth-14              	 9092196	      2658 ns/op	       0 B/op	       0 allocs/op
+Benchmark_ProcessAudio_Sine_Note_Off-14         	13893522	      1744 ns/op	       0 B/op	       0 allocs/op
+Benchmark_ProcessAudio_Mutate_Shared_Data-14    	   40802	    590456 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/CarlKlagba/go-midi-synth/audio	165.771s
