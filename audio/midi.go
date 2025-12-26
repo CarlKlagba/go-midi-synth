@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"slices"
-	"sync/atomic"
 
 	"gitlab.com/gomidi/midi"
 	"gitlab.com/gomidi/midi/reader"
@@ -19,8 +18,6 @@ type MidiNote struct {
 
 const midiNoteOn byte = 0x90
 const midiNoteOff byte = 0x80
-
-var atomicMidiNotes atomic.Pointer[[]MidiNote]
 
 var driverInstance *rtmididrv.Driver
 var midiIn midi.In
@@ -53,9 +50,6 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 		reader.Each(listenToMidiMessage(wp, notesSender)),
 	)
 
-	var playedNotes []MidiNote
-	atomicMidiNotes.Store(&playedNotes)
-
 	log.Println("Listening to MIDI messages...")
 	err = rd.ListenTo(midiIn)
 
@@ -83,19 +77,17 @@ func listenToMidiMessage(wp *WaveProcessor, notesChan chan<- []uint8) func(pos *
 		velocity := midiBytes[2]
 		//fmt.Printf("Canal: 0x%X, Note: %d, Velocity: %d\n", channel, note, velocity)
 
-		midiNotes := atomicMidiNotes.Load()
+		midiNotes := wp.GetNotesPlayed()
 		if channel == midiNoteOn && velocity > 0 {
 			playedNotes := turnOnNote(note, velocity, *midiNotes)
 			wp.SetPlayedNotes(&playedNotes)
-			atomicMidiNotes.Store(&playedNotes)
 		} else if (channel == midiNoteOff) || (channel == midiNoteOn && velocity == 0) {
 			playedNotes := turnOffNote(note, *midiNotes)
 			wp.SetPlayedNotes(&playedNotes)
-			atomicMidiNotes.Store(&playedNotes)
 		}
 
 		if notesChan != nil {
-			notesTemp := *atomicMidiNotes.Load()
+			notesTemp := *wp.GetNotesPlayed()
 			copyNotes := make([]MidiNote, len(notesTemp))
 			copy(copyNotes, notesTemp)
 			on := notesOn(copyNotes)
