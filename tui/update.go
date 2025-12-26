@@ -85,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func waitForNoteCmd(m *model) tea.Cmd {
-	if m.notesReceiver != nil {
+	if m.notesReceiver == nil {
 		return nil
 	}
 	return func() tea.Msg {

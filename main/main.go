@@ -35,7 +35,6 @@ func (p *progFlags) flag(progArg []string) {
 func main() {
 	args := os.Args[1:]
 	flags.flag(args)
-	flags.noNotesDisplay = true // we for it at true until with fix the perf issues
 
 	wp := audio.NewWaveProcessor()
 	stream, err := audio.StreamAudio(wp)
@@ -46,6 +45,7 @@ func main() {
 
 	var midiNotesChan chan []uint8 = nil
 	if !flags.noNotesDisplay {
+		log.Println("Display notes activated.")
 		//Putting the buffer size to 100 seems to fix the issue with clipping but need to look further into it
 		midiNotesChan = make(chan []uint8, 100)
 		defer close(midiNotesChan)

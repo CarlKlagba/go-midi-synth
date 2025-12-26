@@ -93,10 +93,7 @@ func listenToMidiMessage(wp *WaveProcessor, notesChan chan<- []uint8) func(pos *
 			on := notesOn(copyNotes)
 			go func() {
 				slices.Sort(on)
-				//fmt.Println("send to chan: ", on)
 				notesChan <- on
-				//Seem blocking, check if stop blocking with reading
-				//fmt.Println("stop blocking ")
 			}()
 		}
 	}
