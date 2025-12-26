@@ -159,14 +159,14 @@ func decayDownCmd(m *model) tea.Cmd {
 }
 
 func sustainUpCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetSustain(float32(m.sustain + 0.01))
+	m.waveProcessor.SetSustain(float32(m.sustain + 0.05))
 	return func() tea.Msg {
 		return sustainSetAtMsg(m.waveProcessor.GetSustain())
 	}
 }
 
 func sustainDownCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetSustain(float32(m.sustain - 0.01))
+	m.waveProcessor.SetSustain(float32(m.sustain - 0.05))
 	return func() tea.Msg {
 		return sustainSetAtMsg(m.waveProcessor.GetSustain())
 	}

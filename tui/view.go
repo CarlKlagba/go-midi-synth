@@ -50,7 +50,7 @@ func (m model) View() string {
 		faintStyle.Render("d - D"))
 	sustain := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Sustain"),
-		basicTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(float64(m.sustain), 'f', 1, 32))),
+		basicTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(float64(m.sustain*100), 'f', 1, 32))),
 		faintStyle.Render("s - S"))
 	release := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Release"),
