@@ -4,17 +4,17 @@ import tea "github.com/charmbracelet/bubbletea"
 
 type playNotesMsg []uint8
 type waveformSelectedMsg int
-type volumeSetAtMsg float64
+type volumeSetAtMsg float32
 type attackTimeSetAtMsg float64
 type decayTimeSetAtMsg float64
-type sustainSetAtMsg float64
+type sustainSetAtMsg float32
 type releaseTimeSetAtMsg float64
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case volumeSetAtMsg:
-		m.volume = float64(msg)
+		m.volume = float32(msg)
 
 	case attackTimeSetAtMsg:
 		m.attackTime = float64(msg)
@@ -26,7 +26,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.decayTime = float64(msg)
 
 	case sustainSetAtMsg:
-		m.sustain = float64(msg)
+		m.sustain = float32(msg)
 
 	case waveformSelectedMsg:
 		m.selected = int(msg)
@@ -95,7 +95,7 @@ func waitForNoteCmd(m *model) tea.Cmd {
 }
 
 func selectWaveformCmd(m *model) tea.Cmd {
-	m.waveProcessor.AtomicWaveform.Store(m.waves[m.cursor])
+	m.waveProcessor.SetWaveform(m.waves[m.cursor])
 	return func() tea.Msg {
 		return waveformSelectedMsg(m.cursor)
 	}
@@ -159,14 +159,14 @@ func decayDownCmd(m *model) tea.Cmd {
 }
 
 func sustainUpCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetSustain(m.sustain + 0.01)
+	m.waveProcessor.SetSustain(float32(m.sustain + 0.01))
 	return func() tea.Msg {
 		return sustainSetAtMsg(m.waveProcessor.GetSustain())
 	}
 }
 
 func sustainDownCmd(m *model) tea.Cmd {
-	m.waveProcessor.SetSustain(m.sustain - 0.01)
+	m.waveProcessor.SetSustain(float32(m.sustain - 0.01))
 	return func() tea.Msg {
 		return sustainSetAtMsg(m.waveProcessor.GetSustain())
 	}

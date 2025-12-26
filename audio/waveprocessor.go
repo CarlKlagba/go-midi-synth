@@ -26,8 +26,8 @@ const (
 )
 
 type WaveProcessor struct {
-	AtomicPlayedNotes  *atomic.Pointer[[]MidiNote]
-	AtomicWaveform     *atomic.Value
+	atomicPlayedNotes  *atomic.Pointer[[]MidiNote]
+	atomicWaveform     *atomic.Value
 	atomicMaxAmp       *atomic.Value
 	atomicAttackCount  *atomic.Uint32
 	atomicDecayCount   *atomic.Uint32
@@ -110,8 +110,8 @@ func NewWaveProcessorWith(
 	}
 
 	return &WaveProcessor{
-		AtomicPlayedNotes:  &atomicPlayedNotes,
-		AtomicWaveform:     atomicWaveform,
+		atomicPlayedNotes:  &atomicPlayedNotes,
+		atomicWaveform:     atomicWaveform,
 		atomicMaxAmp:       atomicMaxAmp,
 		atomicAttackCount:  atomicAttackCount,
 		atomicDecayCount:   atomicDecayCount,
@@ -135,8 +135,8 @@ func (w *WaveProcessor) ProcessAudioTrackAmplitude(out []float32, ampOut []float
 }
 
 func (w *WaveProcessor) processAudio(out []float32, ampOut []float32) {
-	notesPlayed := *w.AtomicPlayedNotes.Load() //TODO see how comfortable we are about the pointer
-	waveform := w.AtomicWaveform.Load().(Waveform)
+	notesPlayed := *w.atomicPlayedNotes.Load() //TODO see how comfortable we are about the pointer
+	waveform := w.atomicWaveform.Load().(Waveform)
 	maxAmp := w.atomicMaxAmp.Load().(float32)
 	attackCount := uint16(w.atomicAttackCount.Load())
 	decayCount := uint16(w.atomicDecayCount.Load())
@@ -234,7 +234,24 @@ func midiNoteToFreq(note int) float32 {
 	return float32(a4Freq * math.Pow(2, (float64(note)-a4MidiNote)/numberOfNotes))
 }
 
-func (w *WaveProcessor) SetVolume(volume float64) {
+func (w *WaveProcessor) GetNotesPlayed() *[]MidiNote {
+	return w.atomicPlayedNotes.Load()
+}
+
+func (w *WaveProcessor) SetPlayedNotes(n *[]MidiNote) {
+	//copy?
+	w.atomicPlayedNotes.Store(n)
+}
+
+func (w *WaveProcessor) GetWaveform() Waveform {
+	return w.atomicWaveform.Load().(Waveform)
+}
+
+func (w *WaveProcessor) SetWaveform(wave Waveform) {
+	w.atomicWaveform.Store(wave)
+}
+
+func (w *WaveProcessor) SetVolume(volume float32) {
 	if volume < 0.0 {
 		volume = 0.0
 	}
@@ -244,8 +261,8 @@ func (w *WaveProcessor) SetVolume(volume float64) {
 	w.atomicMaxAmp.Store(volume)
 }
 
-func (w *WaveProcessor) GetVolume() float64 {
-	return w.atomicMaxAmp.Load().(float64)
+func (w *WaveProcessor) GetVolume() float32 {
+	return w.atomicMaxAmp.Load().(float32)
 }
 
 func (w *WaveProcessor) SetAttackTime(millitsec float64) {
@@ -280,12 +297,11 @@ func (w *WaveProcessor) SetDecayTime(millitsec float64) {
 	w.atomicDecayCount.Store(val)
 }
 
-func (w *WaveProcessor) GetSustain() float64 {
-	r := w.atomicSustain.Load().(float64)
-	return float64(r) / 440.0
+func (w *WaveProcessor) GetSustain() float32 {
+	return w.atomicSustain.Load().(float32)
 }
 
-func (w *WaveProcessor) SetSustain(sustain float64) {
+func (w *WaveProcessor) SetSustain(sustain float32) {
 	if sustain < 0.0 {
 		sustain = 0.0
 	}

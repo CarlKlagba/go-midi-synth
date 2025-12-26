@@ -39,7 +39,7 @@ func Test_ProcessAudio_With_a_Note(t *testing.T) {
 	notes := make([]MidiNote, 1)
 	notes[0] = MidiNote{Note: 69, Velocity: 50, On: true}
 
-	wp.AtomicPlayedNotes.Store(&notes)
+	wp.SetPlayedNotes(&notes)
 
 	out := make([]float32, 256)    // Is this the right size?
 	ampOut := make([]float32, 256) // Is this the right size?

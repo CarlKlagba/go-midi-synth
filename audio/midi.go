@@ -50,7 +50,7 @@ func StartReadingMidiMessages(wp *WaveProcessor, notesSender chan<- []uint8) err
 
 	rd := reader.New(
 		reader.NoLogger(),
-		reader.Each(listenToMidiMessage(wp.AtomicPlayedNotes, notesSender)),
+		reader.Each(listenToMidiMessage(wp, notesSender)),
 	)
 
 	var playedNotes []MidiNote
@@ -72,7 +72,7 @@ func CloseMidiReader() {
 	must(midiIn.Close())
 }
 
-func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesChan chan<- []uint8) func(pos *reader.Position, msg midi.Message) {
+func listenToMidiMessage(wp *WaveProcessor, notesChan chan<- []uint8) func(pos *reader.Position, msg midi.Message) {
 	return func(pos *reader.Position, msg midi.Message) {
 		midiBytes := msg.Raw()
 		if len(midiBytes) < 3 {
@@ -86,11 +86,11 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesCha
 		midiNotes := atomicMidiNotes.Load()
 		if channel == midiNoteOn && velocity > 0 {
 			playedNotes := turnOnNote(note, velocity, *midiNotes)
-			atomicPlayedNotes.Store(&playedNotes)
+			wp.SetPlayedNotes(&playedNotes)
 			atomicMidiNotes.Store(&playedNotes)
 		} else if (channel == midiNoteOff) || (channel == midiNoteOn && velocity == 0) {
 			playedNotes := turnOffNote(note, *midiNotes)
-			atomicPlayedNotes.Store(&playedNotes)
+			wp.SetPlayedNotes(&playedNotes)
 			atomicMidiNotes.Store(&playedNotes)
 		}
 
@@ -112,7 +112,7 @@ func listenToMidiMessage(atomicPlayedNotes *atomic.Pointer[[]MidiNote], notesCha
 
 func turnOnNote(note byte, velocity byte, playedNotes []MidiNote) []MidiNote {
 	newNotes := make([]MidiNote, len(playedNotes))
-	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+	copy(newNotes, playedNotes) // trick to avoid race condition.
 
 	for i, n := range newNotes {
 		if n.Note == note {
@@ -126,7 +126,7 @@ func turnOnNote(note byte, velocity byte, playedNotes []MidiNote) []MidiNote {
 
 func turnOffNote(note byte, playedNotes []MidiNote) []MidiNote {
 	newNotes := make([]MidiNote, len(playedNotes))
-	copy(newNotes, playedNotes) // trick to avoid race condition. See if we can do better
+	copy(newNotes, playedNotes) // trick to avoid race condition.
 
 	for i, n := range newNotes {
 		if n.Note == note {

@@ -50,7 +50,7 @@ func (m model) View() string {
 		faintStyle.Render("d - D"))
 	sustain := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Sustain"),
-		basicTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(m.sustain, 'f', 1, 32))),
+		basicTextStyle.Render(fmt.Sprintf("%s%%", strconv.FormatFloat(float64(m.sustain), 'f', 1, 32))),
 		faintStyle.Render("s - S"))
 	release := lipgloss.JoinVertical(lipgloss.Top,
 		boldTextStyle.Render("Release"),
@@ -60,7 +60,7 @@ func (m model) View() string {
 	adsrSection := lipgloss.JoinHorizontal(lipgloss.Top, attack, "     ", decay, "     ", sustain, "     ", release)
 
 	full.WriteString(lipgloss.JoinHorizontal(lipgloss.Left, waves.String(), "       ", adsrSection))
-	full.WriteString("\n-" + m.volumeProgress.ViewAs(m.volume) + "+\n")
+	full.WriteString("\n-" + m.volumeProgress.ViewAs(float64(m.volume)) + "+\n")
 	full.WriteString(faintStyle.Render("\nPress space to select, q to quit.\n"))
 
 	return full.String()

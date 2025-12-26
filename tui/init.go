@@ -12,12 +12,12 @@ type model struct {
 	selected       int
 	notesReceiver  <-chan []uint8
 	notesPlayed    []uint8
-	volume         float64
+	volume         float32
 	volumeProgress progress.Model
 	waveProcessor  *audio.WaveProcessor
 	attackTime     float64
 	decayTime      float64
-	sustain        float64
+	sustain        float32
 	releaseTime    float64
 }
 
