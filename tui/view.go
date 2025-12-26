@@ -15,7 +15,6 @@ var (
 	basicTextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))
 	listStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("28"))
 	boldTextStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
-	notesStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true)
 	faintStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Faint(true)
 )
 
@@ -23,7 +22,7 @@ func (m model) View() string {
 	var full strings.Builder
 
 	full.WriteString(
-		fmt.Sprintf("%s\t\t%s \n", headerStyle.Render("Sexy Synth"), notesStyle.Render(DisplayNotes(m.notesPlayed))))
+		fmt.Sprintf("%s\t\t%s \n", headerStyle.Render("Sexy Synth"), boldTextStyle.Render(DisplayNotes(m.notesPlayed))))
 	var waves strings.Builder
 	for i, wave := range m.waves {
 		cursor := " "
